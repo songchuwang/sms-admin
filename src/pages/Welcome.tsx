@@ -106,7 +106,7 @@ const InfoCard: React.FC<{
             }}
           >
             <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/smsManage/smsList">
+              <Link to="/enterpriseManage">
                 <Button
                   style={{ width: '136px', height: '40px' }}
                   size={'large'}
@@ -245,7 +245,7 @@ const Welcome: React.FC = () => {
               color: token.colorTextHeading,
             }}
           >
-            欢迎使用杰讯互联短信平台
+            欢迎使用杰讯互联短信管理平台
           </div>
           <p
             style={{

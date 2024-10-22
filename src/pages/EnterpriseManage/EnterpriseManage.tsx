@@ -1,21 +1,30 @@
-import { addRule, removeRule, rule, updateRule } from '@/services/ant-design-pro/api';
+import { addRule, removeRule, removeBusiness, getList, updateRule, addBusiness, editBusiness, getLogList } from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns, ProDescriptionsActionType } from '@ant-design/pro-components';
+import type { ActionType, ProColumns, ProDescriptionsActionType, ProFormInstance } from '@ant-design/pro-components';
 import {
   FooterToolbar,
   ModalForm,
   PageContainer,
   ProDescriptions,
+  ProForm,
   ProFormRadio,
   ProFormText,
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button, Drawer, Input, message } from 'antd';
+import { Button, Drawer, Input, message, Col, Row, Space, Cascader, Form, Popconfirm } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
+import { areaList } from '../../../public/area';
+import type { CascaderProps } from 'antd';
+
+interface Option {
+  value: string;
+  label: string;
+  children?: Option[];
+}
 
 /**
  * @en-US Add node
@@ -25,11 +34,15 @@ import UpdateForm from './components/UpdateForm';
 const handleAdd = async (fields: API.RuleListItem) => {
   const hide = message.loading('正在添加');
   try {
-    await addRule({
+    let res = await addBusiness({
       ...fields,
     });
-    hide();
-    message.success('Added successfully');
+    if (res.code === '200') {
+      message.success('添加成功');
+      hide();
+    } else {
+      message.error(res.msg)
+    }
     return true;
   } catch (error) {
     hide();
@@ -37,6 +50,28 @@ const handleAdd = async (fields: API.RuleListItem) => {
     return false;
   }
 };
+
+const handleEdit = async (fields: API.RuleListItem) => {
+  const hide = message.loading('更新中...');
+  try {
+    let res = await editBusiness({
+      ...fields,
+    });
+    if (res.code === '200') {
+      message.success('更新成功');
+      hide();
+    } else {
+      message.error(res.msg)
+    }
+    return true;
+  } catch (error) {
+    hide();
+    message.error('Adding failed, please try again!');
+    return false;
+  }
+};
+
+
 
 /**
  * @en-US Update node
@@ -68,15 +103,15 @@ const handleUpdate = async (fields: FormValueType) => {
  *
  * @param selectedRows
  */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
+const handleRemove = async (selectedRows: API.RuleListItem) => {
   const hide = message.loading('正在删除');
   if (!selectedRows) return true;
   try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
+    await removeBusiness({
+      businessId: selectedRows.businessId,
     });
     hide();
-    message.success('Deleted successfully and will refresh soon');
+    message.success('删除成功');
     return true;
   } catch (error) {
     hide();
@@ -85,12 +120,16 @@ const handleRemove = async (selectedRows: API.RuleListItem[]) => {
   }
 };
 const TableList: React.FC = () => {
+  const modalFormRef = useRef<ProFormInstance>();
   const actionDesRef = useRef<ProDescriptionsActionType>();
   /**
    * @en-US Pop-up window of new window
    * @zh-CN 新建窗口的弹窗
    *  */
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
+
+
+  const [businessTitle, editBusinessTitle] = useState<string>('新建企业');
 
   const [examineModalOpen, handleExamineModalOpen] = useState<boolean>(false);
 
@@ -111,63 +150,56 @@ const TableList: React.FC = () => {
    * */
 
   const columns: ProColumns<API.RuleListItem>[] = [
+    // {
+    //   title: '企业编号',
+    //   dataIndex: 'businessId',
+    //   tip: 'The rule name is the unique key',
+    // },
     {
-      title: '任务编号',
+      title: '企业名称',
       dataIndex: 'name',
-      tip: 'The rule name is the unique key',
-      search: false,
-    },
-    {
-      title: '短信内容',
-      dataIndex: 'content',
-      valueType: 'textarea',
-    },
-    {
-      title: '发送方式',
-      dataIndex: 'content',
       valueType: 'textarea',
       search: false,
     },
     {
-      title: '发送时间',
-      dataIndex: 'content',
+      title: '公司地址',
+      dataIndex: 'area',
       valueType: 'textarea',
       search: false,
     },
     {
-      title: '发送号码数',
-      dataIndex: 'content',
+      title: '详细地址',
+      dataIndex: 'address',
       valueType: 'textarea',
       search: false,
     },
     {
-      title: '短信条数',
-      dataIndex: 'content',
-      valueType: 'textarea',
-      search: false,
+      title: '企业认证状态',
+      dataIndex: 'status',
+      hideInForm: true,
+      valueEnum: {
+        0: {
+          text: '仅注册',
+          status: 'Default',
+        },
+        1: {
+          text: '待审核',
+          status: 'Processing',
+        },
+        2: {
+          text: '认证通过',
+          status: 'Success',
+        },
+        3: {
+          text: '认证不通过',
+          status: 'Error',
+        },
+      },
     },
     {
-      title: '预估计费金额（元）',
-      dataIndex: 'content',
-      valueType: 'textarea',
-      search: false,
-    },
-    {
-      title: '发送成功短信（条）',
-      dataIndex: 'content',
-      valueType: 'textarea',
-      search: false,
-    },
-    {
-      title: '发送失败短信（条）',
-      dataIndex: 'content',
-      valueType: 'textarea',
-      search: false,
-    },
-    {
-      title: '创建时间',
+      title: '开通时间',
       sorter: true,
-      dataIndex: 'updatedAt',
+      dataIndex: 'createTime',
       valueType: 'dateTime',
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
         const status = form.getFieldValue('status');
@@ -181,41 +213,33 @@ const TableList: React.FC = () => {
       },
     },
     {
-      title: '创建人',
-      dataIndex: 'desc',
+      title: '账户余额',
+      dataIndex: 'balance',
       valueType: 'textarea',
-    },
-    {
-      title: '服务调用次数',
-      dataIndex: 'callNo',
-      sorter: true,
-      hideInForm: true,
-      renderText: (val: string) => `${val}${'万'}`,
       search: false,
     },
     {
-      title: '任务状态',
-      dataIndex: 'status',
+      title: '单条短信收费（元）',
+      dataIndex: 'cost',
+      valueType: 'textarea',
+      search: false,
+    },
+    {
+      title: '企业状态',
+      dataIndex: 'businessStatus',
       hideInForm: true,
       valueEnum: {
-        0: {
-          text: '关闭',
-          status: 'Default',
-        },
         1: {
-          text: '运行中',
-          status: 'Processing',
-        },
-        2: {
-          text: '已上线',
+          text: '正常',
           status: 'Success',
         },
-        3: {
-          text: '异常',
+        0: {
+          text: '暂停服务',
           status: 'Error',
         },
       },
     },
+
     {
       title: '操作',
       dataIndex: 'option',
@@ -224,12 +248,28 @@ const TableList: React.FC = () => {
         <a
           key="config"
           onClick={() => {
-            handleExamineModalOpen(true);
-            setCurrentRow(record);
+            if (modalFormRef.current) {
+              let data = {
+                ...record,
+                allArea: [record.province, record.city, record.area]
+              }
+              modalFormRef.current.setFieldsValue(data);
+              handleModalOpen(true);
+              setCurrentRow(record);
+              editBusinessTitle('编辑企业')
+            }
           }}
         >
-          审核
+          编辑
         </a>,
+        <Popconfirm title="确定要删除该企业吗？" onConfirm={async () => {
+          await handleRemove(record)
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
+        }}>
+          <a>删除</a>
+        </Popconfirm>,
         <a
           onClick={() => {
             // handleNotesModalOpen(true);
@@ -240,21 +280,56 @@ const TableList: React.FC = () => {
         >
           备注
         </a>,
-        // render: (dom, entity) => {
-        //   return (
-        //     <a
-        //       onClick={() => {
-        //         setCurrentRow(entity);
-        //         setShowDetail(true);
-        //       }}
-        //     >
-        //       {dom}
-        //     </a>
-        //   );
-        // },
+        <a
+          onClick={() => {
+            // handleNotesModalOpen(true);
+            setShowDetail(true);
+            setCurrentRow(record);
+          }}
+          key="subscribeAlert"
+        >
+          充值
+        </a>,
+        // <a
+        //   onClick={() => {
+        //     // handleNotesModalOpen(true);
+        //     setShowDetail(true);
+        //     setCurrentRow(record);
+        //   }}
+        //   key="subscribeAlert"
+        // >
+        //   计费设置
+        // </a>,
+        // <a
+        //   onClick={() => {
+        //     // handleNotesModalOpen(true);
+        //     setShowDetail(true);
+        //     setCurrentRow(record);
+        //   }}
+        //   key="subscribeAlert"
+        // >
+        //   暂停服务
+        // </a>,
+        // <a
+        //   onClick={() => {
+        //     // handleNotesModalOpen(true);
+        //     setShowDetail(true);
+        //     setCurrentRow(record);
+        //   }}
+        //   key="subscribeAlert"
+        // >
+        //   开启服务
+        // </a>,
       ],
     },
   ];
+  const formItemLayout = {
+    labelCol: { span: 6 },
+    wrapperCol: { span: 18 },
+  }
+  const onAreaChange: CascaderProps<Option>['onChange'] = (value) => {
+    console.log(value);
+  };
   return (
     <PageContainer>
       <ProTable<API.RuleListItem, API.PageParams>
@@ -269,13 +344,18 @@ const TableList: React.FC = () => {
             type="primary"
             key="primary"
             onClick={() => {
+              setCurrentRow({})
+              if (modalFormRef.current) {
+                editBusinessTitle('新建企业')
+                modalFormRef.current.resetFields()
+              }
               handleModalOpen(true);
             }}
           >
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={rule}
+        request={getList}
         columns={columns}
         rowSelection={{
           onChange: (_, selectedRows) => {
@@ -314,33 +394,170 @@ const TableList: React.FC = () => {
           <Button type="primary">批量审批</Button>
         </FooterToolbar>
       )}
+      {/* 新增、编辑企业弹窗 */}
       <ModalForm
-        title={'新建规则'}
-        width="400px"
+        {...formItemLayout}
+        title={businessTitle}
+        width="600px"
+        formRef={modalFormRef}
         open={createModalOpen}
         onOpenChange={handleModalOpen}
+        layout='horizontal'
+        submitter={{
+          render: (props, doms) => {
+            return (
+              <Row>
+                <Col span={14} offset={2}>
+                  <Space>{doms}</Space>
+                </Col>
+              </Row>
+            )
+          },
+        }}
         onFinish={async (value) => {
-          const success = await handleAdd(value as API.RuleListItem);
-          if (success) {
-            handleModalOpen(false);
-            if (actionRef.current) {
-              actionRef.current.reload();
+          console.log('onFinish', value);
+          const payload = {
+            ...value,
+            province: value?.allArea[0],
+            city: value?.allArea[1],
+            area: value?.allArea[2],
+            businessId: currentRow?.businessId
+          }
+          console.log('onFinish2', payload);
+          delete payload?.allArea
+          if (businessTitle === '新建企业') {
+            const success = await handleAdd(payload as API.RuleListItem);
+            if (success) {
+              handleModalOpen(false);
+              if (actionRef.current) {
+                modalFormRef.current?.resetFields();
+                actionRef.current.reload();
+              }
+            }
+          } else {
+            const success = await handleEdit(payload as API.RuleListItem);
+            if (success) {
+              handleModalOpen(false);
+              if (actionRef.current) {
+                modalFormRef.current?.resetFields();
+                actionRef.current.reload();
+              }
             }
           }
+
         }}
       >
         <ProFormText
           rules={[
             {
               required: true,
-              message: '规则名称为必填项',
+              message: '请输入公司名称',
             },
           ]}
           width="md"
           name="name"
+          label="公司名称"
+          placeholder="请输入公司名称"
         />
-        <ProFormTextArea width="md" name="desc" />
+
+        <Form.Item
+          label="公司地址"
+          name="allArea"
+          rules={[{ required: true, message: '请选择公司地址' }]}
+        >
+          <Cascader style={{ width: 330 }} options={areaList} onChange={onAreaChange} placeholder="请选择公司地址" />
+        </Form.Item>
+        <ProFormText
+          rules={[
+            {
+              required: true,
+              message: '请输入公司地址',
+            },
+          ]}
+          width="md"
+          name="address"
+          label="详细地址"
+          placeholder="请输入公司地址"
+        />
+        <ProFormText
+          rules={[
+            {
+              required: true,
+              message: '请输入账户名',
+            },
+            { type: 'string', min: 6, max: 18 }
+          ]}
+          width="md"
+          name="account"
+          label="账户名（主）"
+          placeholder="主账号字母开头，允许6-18位，允许字母数字下划线"
+        />
+        <ProFormText
+          rules={[
+            {
+              required: true,
+              message: '请输入账户真实姓名',
+            },
+          ]}
+          width="md"
+          name="realName"
+          label="账户真实姓名"
+          placeholder="请输入账户真实姓名"
+        />
+        <ProFormText
+          rules={[
+            {
+              required: true,
+              message: '请输入手机号码',
+            },
+          ]}
+          width="md"
+          name="phoneNumber"
+          label="绑定手机号码"
+          placeholder="请输入手机号码"
+        />
+        <ProFormText
+          // rules={[
+          //   {
+          //     required: true,
+          //     message: '请输入职位',
+          //   },
+          // ]}
+          width="md"
+          name="job"
+          label="职位"
+          placeholder="请输入职位"
+        />
+        {
+          businessTitle === '新建企业' ?
+            <ProFormText
+              rules={[
+                { type: 'string', min: 6, max: 18 }
+                // {
+                //   required: true,
+                //   message: '请设置初始登录密码',
+                // },
+              ]}
+              width="md"
+              name="password"
+              label="初始登录密码"
+              placeholder="初始登录密码"
+            /> : null
+        }
+        <ProFormText
+          // rules={[
+          //   {
+          //     required: true,
+          //     message: '规则名称为必填项',
+          //   },
+          // ]}
+          width="md"
+          name="cost"
+          label="单条短信计费"
+          placeholder="单条短信计费"
+        />
       </ModalForm>
+      {/* 企业充值 */}
       <ModalForm
         title={'短信审核'}
         width="400px"
@@ -397,15 +614,15 @@ const TableList: React.FC = () => {
         width="400px"
         open={notesModalOpen}
         onOpenChange={handleNotesModalOpen}
-        // onFinish={async (value) => {
-        //   const success = await handleAdd(value as API.RuleListItem);
-        //   if (success) {
-        //     handleExamineModalOpen(false);
-        //     if (actionRef.current) {
-        //       actionRef.current.reload();
-        //     }
-        //   }
-        // }}
+      // onFinish={async (value) => {
+      //   const success = await handleAdd(value as API.RuleListItem);
+      //   if (success) {
+      //     handleExamineModalOpen(false);
+      //     if (actionRef.current) {
+      //       actionRef.current.reload();
+      //     }
+      //   }
+      // }}
       >
         <ProFormRadio.Group
           name="type"
@@ -478,18 +695,9 @@ const TableList: React.FC = () => {
           title="高级定义列表 request"
           column={1}
           request={async () => {
-            return Promise.resolve({
-              success: true,
-              data: {
-                id: '这是一段文本2',
-                date: '20200730',
-                money: '12121',
-                reason: '原因',
-                reason2: '原因2',
-              },
-            });
+            return getLogList(currentRow?.businessId)
           }}
-          // extra={<Button type="link">修改</Button>}
+        // extra={<Button type="link">修改</Button>}
         >
           <ProDescriptions.Item dataIndex="id" label="审核人" />
           <ProDescriptions.Item dataIndex="date" label="日期" valueType="date" />

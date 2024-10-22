@@ -6,15 +6,15 @@ export default [
   },
   { path: '/welcome', name: '首页', icon: 'home', component: './Welcome' },
   {
-    path: '/smsManage',
-    name: '短信管理',
+    path: '/enterpriseManage',
+    name: '企业管理',
     icon: 'mail',
-    access: 'canAdmin',
+    // access: 'canAdmin',
     routes: [
-      { path: '/smsManage', redirect: '/smsManage/sub-page' },
-      { path: '/smsManage/smsList', name: '短信列表', component: './SmsManage/SmsList' },
-      { path: '/smsManage/upAndDowm', name: '上下行', component: './SmsManage/UpAndDowm' },
-      { path: '/smsManage/sendSms', name: '发送短信', component: './SmsManage/SendSms' },
+      // { path: '/enterpriseManage', redirect: '/enterpriseManage' },
+      { path: '/enterpriseManage', name: '企业管理', component: './EnterpriseManage/EnterpriseManage' },
+      // { path: '/smsManage/upAndDowm', name: '上下行', component: './SmsManage/UpAndDowm' },
+      // { path: '/smsManage/sendSms', name: '发送短信', component: './SmsManage/SendSms' },
     ],
   },
   {
@@ -27,7 +27,7 @@ export default [
     path: '/consumption',
     name: '消费充值',
     icon: 'crown',
-    access: 'canAdmin',
+    // access: 'canAdmin',
     routes: [
       {
         path: '/consumption/consumptionDetails',
@@ -45,7 +45,7 @@ export default [
     path: '/statistics',
     name: '报表统计',
     icon: 'table',
-    access: 'canAdmin',
+    // access: 'canAdmin',
     routes: [
       {
         path: '/statistics/rechargeStatistics',
@@ -63,7 +63,7 @@ export default [
     path: '/account',
     name: '账户管理',
     icon: 'appstore',
-    access: 'canAdmin',
+    // access: 'canAdmin',
     routes: [
       {
         path: '/account/employeeAccount',

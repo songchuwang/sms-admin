@@ -6,7 +6,7 @@ import { request } from '@umijs/max';
 export async function currentUser(options?: { [key: string]: any }) {
   return request<{
     data: API.CurrentUser;
-  }>('/api/v1/admin/home/business/info', {
+  }>('/api/v1/admin/getInfo', {
     method: 'GET',
     ...(options || {}),
   });
@@ -52,6 +52,78 @@ export async function getNotices(options?: { [key: string]: any }) {
   });
 }
 
+// 获取备注列表
+export async function getLogList(
+  params: {
+    businessId?:string;
+  },
+  options?: { [key: string]: any },
+) {
+  console.log('列表翻页接口',params);
+  let payload = {
+    businessId: params
+  }
+  return request<API.RuleList>('/api/v1/admin/platform/business/check/log/list', {
+    method: 'GET',
+    params: {
+      ...payload,
+    },
+    ...(options || {}),
+  });
+}
+
+/** 获取规则列表 GET /api/rule */
+export async function getList(
+  params: {
+    // query
+    /** 当前的页码 */
+    current?: number;
+    /** 页面的容量 */
+    pageSize?: number;
+  },
+  options?: { [key: string]: any },
+) {
+  console.log('列表翻页接口',params,options);
+  let payload = {
+    ...params,
+    pageNum:params.current
+  }
+  delete payload.current
+
+  // 这里需要返回一个 Promise,在返回之前你可以进行数据转化
+    // 如果需要转化参数可以在这里进行修改
+    const msg = await request<API.RuleList>('/api/v1/admin/platform/business/page', {
+      method: 'POST',
+      data: {
+        method: 'post',
+        ...(payload || {}),
+      },
+    })
+    console.log('request result', msg);
+    return {
+      data:msg.list,
+      success:msg.success,
+      total:msg.total
+    }
+    
+  //   return {
+  //     data: msg.result,
+  //     // success 请返回 true，
+  //     // 不然 table 会停止解析数据，即使有数据
+  //     success: boolean,
+  //     // 不传会使用 data 的长度，如果是分页一定要传
+  //     total: number,
+  //   };
+  
+  // return request<API.RuleList>('/api/v1/admin/platform/business/page', {
+  //   method: 'POST',
+  //   data: {
+  //     method: 'post',
+  //     ...(payload || {}),
+  //   },
+  // });
+}
+
 /** 获取规则列表 GET /api/rule */
 export async function rule(
   params: {
@@ -63,7 +135,9 @@ export async function rule(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.RuleList>('/api/rule', {
+  console.log('列表翻页接口',params,options);
+  
+  return request<API.RuleList>('/api/v1/admin/platform/business/page', {
     method: 'GET',
     params: {
       ...params,
@@ -94,6 +168,26 @@ export async function addRule(options?: { [key: string]: any }) {
   });
 }
 
+export async function addBusiness(options?: { [key: string]: any }) {
+  return request<API.RuleListItem>('/api/v1/admin/platform/business/add', {
+    method: 'POST',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+  });
+}
+
+export async function editBusiness(options?: { [key: string]: any }) {
+  return request<API.RuleListItem>('/api/v1/admin/platform/business/update', {
+    method: 'POST',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+  });
+}
+
 /** 删除规则 DELETE /api/rule */
 export async function removeRule(options?: { [key: string]: any }) {
   return request<Record<string, any>>('/api/rule', {
@@ -104,3 +198,14 @@ export async function removeRule(options?: { [key: string]: any }) {
     },
   });
 }
+
+export async function removeBusiness(options?: { [key: string]: any }) {
+  return request<Record<string, any>>('/api/v1/admin/platform/business/delete', {
+    method: 'POST',
+    data: {
+      method: 'delete',
+      ...(options || {}),
+    },
+  });
+}
+
