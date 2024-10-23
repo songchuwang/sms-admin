@@ -13,7 +13,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button, Drawer, Input, message, Col, Row, Space, Cascader, Form, Popconfirm } from 'antd';
+import { Button, Drawer, Input, message, Col, Row, Space, Cascader, Form, Popconfirm, Modal } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
@@ -71,8 +71,6 @@ const handleEdit = async (fields: API.RuleListItem) => {
   }
 };
 
-
-
 /**
  * @en-US Update node
  * @zh-CN 更新节点
@@ -119,14 +117,38 @@ const handleRemove = async (selectedRows: API.RuleListItem) => {
     return false;
   }
 };
+
+const handleRecharge = async (fields: any) => {
+  const hide = message.loading('更新中...');
+  try {
+    let res = await editBusiness({
+      ...fields,
+    });
+    if (res.code === '200') {
+      message.success('更新成功');
+      hide();
+    } else {
+      message.error(res.msg)
+    }
+    return true;
+  } catch (error) {
+    hide();
+    message.error('Adding failed, please try again!');
+    return false;
+  }
+};
+
 const TableList: React.FC = () => {
   const modalFormRef = useRef<ProFormInstance>();
   const actionDesRef = useRef<ProDescriptionsActionType>();
+  const rechargeRef = useRef<ActionType>();
   /**
    * @en-US Pop-up window of new window
    * @zh-CN 新建窗口的弹窗
    *  */
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
+
+  const [isRechargeModalOpen, setRechargeModalOpen] = useState(false); // 充值弹窗
 
 
   const [businessTitle, editBusinessTitle] = useState<string>('新建企业');
@@ -248,16 +270,21 @@ const TableList: React.FC = () => {
         <a
           key="config"
           onClick={() => {
-            if (modalFormRef.current) {
-              let data = {
-                ...record,
-                allArea: [record.province, record.city, record.area]
+            console.log('modalFormRef', modalFormRef);
+            handleModalOpen(true);
+            setTimeout(() => {
+              if (modalFormRef.current) {
+
+                let data = {
+                  ...record,
+                  allArea: [record.province, record.city, record.area]
+                }
+                modalFormRef.current.setFieldsValue(data);
+
+                setCurrentRow(record);
+                editBusinessTitle('编辑企业')
               }
-              modalFormRef.current.setFieldsValue(data);
-              handleModalOpen(true);
-              setCurrentRow(record);
-              editBusinessTitle('编辑企业')
-            }
+            })
           }}
         >
           编辑
@@ -282,8 +309,7 @@ const TableList: React.FC = () => {
         </a>,
         <a
           onClick={() => {
-            // handleNotesModalOpen(true);
-            setShowDetail(true);
+            setRechargeModalOpen(true)
             setCurrentRow(record);
           }}
           key="subscribeAlert"
@@ -321,6 +347,38 @@ const TableList: React.FC = () => {
         //   开启服务
         // </a>,
       ],
+    },
+  ];
+
+  const rechargeColumns: ProColumns<API.RuleListItem>[] = [
+    {
+      title: '充值金额（元）',
+      dataIndex: 'name',
+      valueType: 'textarea',
+      search: false,
+    },
+    {
+      title: '充值时间',
+      sorter: true,
+      dataIndex: 'createTime',
+      valueType: 'dateTime',
+      search: false,
+      renderFormItem: (item, { defaultRender, ...rest }, form) => {
+        const status = form.getFieldValue('status');
+        if (`${status}` === '0') {
+          return false;
+        }
+        if (`${status}` === '3') {
+          return <Input {...rest} placeholder={'请输入异常原因！'} />;
+        }
+        return defaultRender(item);
+      },
+    },
+    {
+      title: '操作人',
+      dataIndex: 'balance',
+      valueType: 'textarea',
+      search: false,
     },
   ];
   const formItemLayout = {
@@ -558,6 +616,67 @@ const TableList: React.FC = () => {
         />
       </ModalForm>
       {/* 企业充值 */}
+      <Modal width={1000} title="企业充值" open={isRechargeModalOpen} onOk={handleRecharge} onCancel={() => setRechargeModalOpen(false)}>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <Form.Item
+            label="公司地址"
+            name="allArea"
+            style={{ marginRight: 30 }}
+          >
+            <span>比亚迪</span>
+          </Form.Item>
+          <ProFormText
+            width="md"
+            name="address"
+            label="充值金额"
+            placeholder="请输入充值金额（元）"
+
+          />
+          <Button
+            style={{ marginLeft: 30 }}
+            type="primary"
+            key="primary"
+            onClick={() => {
+            }}
+          >
+            确认
+          </Button>
+
+        </div>
+        <ProTable<API.RuleListItem, API.PageParams>
+          headerTitle={'充值记录'}
+          actionRef={rechargeRef}
+          rowKey="key"
+          // search={{
+          //   labelWidth: 120,
+          // }}
+          options={false}
+          search={false}
+          toolBarRender={() => [
+            <Button
+              type="primary"
+              key="primary"
+              onClick={() => {
+                setCurrentRow({})
+                if (modalFormRef.current) {
+                  editBusinessTitle('新建企业')
+                  modalFormRef.current.resetFields()
+                }
+                handleModalOpen(true);
+              }}
+            >
+              <PlusOutlined /> 新建
+            </Button>,
+          ]}
+          request={getList}
+          columns={rechargeColumns}
+          rowSelection={{
+            onChange: (_, selectedRows) => {
+              setSelectedRows(selectedRows);
+            },
+          }}
+        />
+      </Modal>
       <ModalForm
         title={'短信审核'}
         width="400px"

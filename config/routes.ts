@@ -8,55 +8,11 @@ export default [
   {
     path: '/enterpriseManage',
     name: '企业管理',
-    icon: 'mail',
-    // access: 'canAdmin',
-    routes: [
-      // { path: '/enterpriseManage', redirect: '/enterpriseManage' },
-      { path: '/enterpriseManage', name: '企业管理', component: './EnterpriseManage/EnterpriseManage' },
-      // { path: '/smsManage/upAndDowm', name: '上下行', component: './SmsManage/UpAndDowm' },
-      // { path: '/smsManage/sendSms', name: '发送短信', component: './SmsManage/SendSms' },
-    ],
-  },
-  {
-    name: '通讯录管理',
     icon: 'book',
-    path: '/AddressBookManage',
-    component: './AddressBookManage',
-  },
-  {
-    path: '/consumption',
-    name: '消费充值',
-    icon: 'crown',
     // access: 'canAdmin',
     routes: [
-      {
-        path: '/consumption/consumptionDetails',
-        name: '消费明细',
-        component: './ConsumerRecharge/ConsumptionDetails',
-      },
-      {
-        path: '/consumption/accountRecharge',
-        name: '账户充值',
-        component: './ConsumerRecharge/AccountRecharge',
-      },
-    ],
-  },
-  {
-    path: '/statistics',
-    name: '报表统计',
-    icon: 'table',
-    // access: 'canAdmin',
-    routes: [
-      {
-        path: '/statistics/rechargeStatistics',
-        name: '充值统计',
-        component: './ReportStatistics/RechargeStatistics',
-      },
-      {
-        path: '/statistics/SRVStatistics',
-        name: '收发量统计',
-        component: './ReportStatistics/SRVStatistics',
-      },
+      { path: '/enterpriseManage/enterpriseManage', name: '企业管理', component: './EnterpriseManage/EnterpriseManage' },
+      { path: '/enterpriseManage/accountManage', name: '账户管理', component: './EnterpriseManage/AccountManage' },
     ],
   },
   {
@@ -70,26 +26,7 @@ export default [
         name: '员工账户',
         component: './AccountManage/EmployeeAccount',
       },
-      { path: '/account/roles', name: '账户充值', component: './AccountManage/RolesManage' },
-    ],
-  },
-  {
-    path: '/setting',
-    name: '系统设置',
-    icon: 'setting',
-    access: 'canAdmin',
-    routes: [
-      { path: '/setting/smsTemplate', name: '短信模板', component: './Setting/SmsTemplate' },
-      {
-        path: '/setting/enterpriseCertification',
-        name: '企业认证',
-        component: './Setting/EnterpriseCertification',
-      },
-      {
-        path: '/setting/signatureManagement',
-        name: '签名管理',
-        component: './Setting/SignatureManagement',
-      },
+      { path: '/account/permissions', name: '权限管理', component: './AccountManage/Permissions' },
     ],
   },
   { path: '/', redirect: '/welcome' },
