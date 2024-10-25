@@ -1,0 +1,35 @@
+/* src/App.css */
+.App {
+    font-family: sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  .tabs {
+    background: red;
+  }
+  
+  .tabs-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .tab-button {
+    padding: 10px 20px;
+    margin: 0 5px;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .tab-button.active, .tab-button:hover {
+    background-color: #ddd;
+  }
+  
+  .tabs-content {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fafafa;
+  }

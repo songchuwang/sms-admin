@@ -1,205 +1,257 @@
 import { Line } from '@ant-design/charts';
+import { getBusinessCount, getBusinessConsumption, getRevenueData, getSmsData } from '@/services/ant-design-pro/api';
+
 import { EditOutlined, FundOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, useModel } from '@umijs/max';
-import { Button, Card, theme } from 'antd';
-import React from 'react';
+import { Button, Card, theme, Radio } from 'antd';
+import { createStyles } from 'antd-style';
+import React, { useEffect, useRef, useState } from 'react';
+import { Column } from '@ant-design/plots';
+import ReactEcharts from 'echarts-for-react';
+import * as echarts from 'echarts';
 
-/**
- * 每个单独的卡片，为了复用样式抽成了组件
- * @param param0
- * @returns
- */
-const InfoCard: React.FC<{
-  title: string;
-  index: number;
-  desc: string;
-  href: string;
-  cardType: number;
-}> = ({ title, cardType }) => {
-  const { initialState, setInitialState } = useModel('@@initialState');
-  const { currentUser } = initialState || {};
-  const { useToken } = theme;
+const data = [
+  { type: '已注册企业', value: 100 },
+  { type: '认证企业', value: 200 },
+  { type: '未认证企业', value: 20 },
+  { type: '待提交认证企业', value: 102 },
+  { type: '认证中企业', value: 88 },
+  { type: '认证未通过企业', value: 3 },
+];
 
-  const { token } = useToken();
 
-  return (
-    <div
-      style={{
-        backgroundColor: token.colorBgContainer,
-        boxShadow: token.boxShadow,
-        borderRadius: '8px',
-        fontSize: '14px',
-        color: token.colorTextSecondary,
-        lineHeight: '22px',
-        padding: '16px 19px',
-        minWidth: '220px',
-        flex: 1,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          alignItems: 'center',
-        }}
-      >
-        {/* <div
-          style={{
-            width: 48,
-            height: 48,
-            lineHeight: '22px',
-            backgroundSize: '100%',
-            textAlign: 'center',
-            padding: '8px 16px 16px 12px',
-            color: '#FFF',
-            fontWeight: 'bold',
-            backgroundImage:
-              "url('https://gw.alipayobjects.com/zos/bmw-prod/daaf8d50-8e6d-4251-905d-676a24ddfa12.svg')",
-          }}
-        >
-          {index}
-        </div> */}
-        <div
-          style={{
-            fontSize: '16px',
-            color: token.colorText,
-            paddingBottom: 8,
-          }}
-        >
-          {title}
-        </div>
-      </div>
-      {cardType === 1 ? (
-        <div>
-          <div>
-            <img src="" alt="" />
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <span>{currentUser?.name}|企业编码:{currentUser?.businessId}</span>
-              <span>深圳市杰讯信息科技技术</span>
-              <span>广东深圳市龙岗区</span>
-            </div>
-          </div>
-          <div></div>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'flex-start',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              flex: 1,
-            }}
-          >
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/enterpriseManage">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  待审核短信
-                </Button>
-              </Link>
-            </div>
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/smsManage/sendSms">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  发送短信
-                </Button>
-              </Link>
-            </div>
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/account/employeeAccount">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  员工账户
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              flex: 1,
-            }}
-          >
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/consumption/accountRecharge">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  账户充值
-                </Button>
-              </Link>
-            </div>
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/AddressBookManage">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  通讯录
-                </Button>
-              </Link>
-            </div>
-            <div style={{ padding: '5px 10px', marginBottom: '10px' }}>
-              <Link to="/consumption/consumptionDetails">
-                <Button
-                  style={{ width: '136px', height: '40px' }}
-                  size={'large'}
-                  icon={<EditOutlined />}
-                >
-                  消费明细
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-      <div
-        style={{
-          fontSize: '14px',
-          color: token.colorTextSecondary,
-          textAlign: 'justify',
-          lineHeight: '22px',
-          marginBottom: 8,
-        }}
-      ></div>
-    </div>
-  );
-};
+
 
 const Welcome: React.FC = () => {
+  const { styles } = useStyles();
   const { token } = theme.useToken();
   const { initialState } = useModel('@@initialState');
+  const [businessCountArr, setBusinessCount] = useState([]);
+  const [businessConsumptionArr, setBusinessConsumption] = useState([]); // 企业消费图表
+  const [revenueArr, setRevenue] = useState([]); // 企业消费图表
+  // 企业消费tab切换
+  const [activeTab, setActiveTab] = useState('1');
+  // 平台营收tab
+  const [activeRevenueTab, setRevenueActiveTab] = useState('2');
+  // 平台短信条数tab
+  const [activeSMSTab, setSMSActiveTab] = useState('2');
+  // 平台短信条数数据
+  const [smsCountArr, setSmsCount] = useState([]); // 企业消费图表
+
+
+
+  const onTabChange = (e: RadioChangeEvent) => {
+    setActiveTab(e.target.value);
+  };
+  const onRevenueTabChange = (e: RadioChangeEvent) => {
+    setRevenueActiveTab(e.target.value);
+  };
+  const onSmsTabChange = (e: RadioChangeEvent) => {
+    setSMSActiveTab(e.target.value);
+  };
+
+  useEffect(() => {
+    getBusinessCount().then(res => {
+      setBusinessCount(res.list)
+    })
+    getBusinessConsumption({
+      type: activeTab
+    }).then(res => {
+      setBusinessConsumption(res.list)
+    })
+    getRevenueData({
+      type: activeRevenueTab
+    }).then(res => {
+      setRevenue(res.list)
+    })
+    getSmsData({
+      type: activeSMSTab
+    }).then(res => {
+      setSmsCount(res.list)
+    })
+  }, [])
+  // 柱状图
+  const BarChart = () => {
+    // ECharts 的配置项
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: [
+        {
+          type: 'category',
+          data: businessCountArr.map(item => item.statusDesc),
+          axisTick: {
+            alignWithLabel: true
+          }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value'
+        }
+      ],
+      series: [
+        {
+          name: '平台企业数量',
+          type: 'bar',
+          barWidth: '60%',
+          data: businessCountArr.map(item => item.count)
+        }
+      ]
+    };
+
+    return <ReactEcharts option={option} />;
+  };
+  // 平台企业消费折线图
+  const LineChart1 = () => {
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      legend: {
+        data:['平台企业消费'],
+        bottom: -5,
+    },
+      xAxis: {
+        type: 'category',
+        data: businessConsumptionArr.map(item => item.date)
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '12%',
+        top:'5%',
+        containLabel: true
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [
+        {
+
+          name: '平台企业消费',
+          data: [820, 932, 901, 934, 1290, 1330, 1320],
+          type: 'line',
+          smooth: true,
+          label: {
+            show: true,
+            position: 'top'
+          }
+        }
+      ]
+    };
+    return <ReactEcharts option={option} />;
+  }
+  // 平台企业消费折线图
+  const LineChart2 = () => {
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      legend: {
+        data:['平台营收'],
+        bottom: -5,
+    },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '12%',
+        top:'5%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: revenueArr.map(item => item.date)
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [
+        {
+          name: '平台营收',
+          data: revenueArr.map(item => item.revenue),
+          type: 'line',
+          smooth: true,
+          label: {
+            show: true,
+            position: 'top'
+          }
+        }
+      ]
+    };
+    return <ReactEcharts option={option} />;
+  }
+  // 平台短信条数
+  const LineChart3 = () => {
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      legend: {
+        data:['平台接收短信（条）,平台发送短信（条）'],
+        bottom: -5,
+    },
+      xAxis: {
+        type: 'category',
+        data: smsCountArr.map(item => item.date)
+      },
+      yAxis: {
+        type: 'value'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '12%',
+        top:'5%',
+        containLabel: true
+      },
+      series: [
+        {
+          name: '平台接收短信（条）',
+          data: smsCountArr.map(item => item.receiveCount),
+          type: 'line',
+          smooth: true,
+          label: {
+            show: true,
+            position: 'top'
+          }
+        },
+        {
+          name: '平台发送短信（条）',
+          data: smsCountArr.map(item => item.sendCount),
+          type: 'line',
+          smooth: true,
+          label: {
+            show: true,
+            position: 'top'
+          }
+        }
+      ]
+    };
+    return <ReactEcharts option={option} />;
+  }
+
+
   const data = [
     { year: '1991', value: 3 },
     { year: '1992', value: 4 },
@@ -260,34 +312,6 @@ const Welcome: React.FC = () => {
             Ant Design Pro 是一个整合了 umi，Ant Design 和 ProComponents
             的脚手架方案。致力于在设计规范和基础组件的基础上，继续向上构建，提炼出典型模板/业务组件/配套设计资源，进一步提升企业级中后台产品设计研发过程中的『用户』和『设计者』的体验。
           </p>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 16,
-            }}
-          >
-            <InfoCard
-              index={1}
-              cardType={1}
-              href="https://umijs.org/docs/introduce/introduce"
-              title="账户基本信息"
-              desc="umi 是一个可扩展的企业级前端应用框架,umi 以路由为基础的，同时支持配置式路由和约定式路由，保证路由的功能完备，并以此进行功能扩展。"
-            />
-            <InfoCard
-              index={2}
-              cardType={2}
-              title="快捷入口"
-              href="https://ant.design"
-              desc="antd 是基于 Ant Design 设计体系的 React UI 组件库，主要用于研发企业级中后台产品。"
-            />
-            {/* <InfoCard
-              index={3}
-              title="了解 Pro Components"
-              href="https://procomponents.ant.design"
-              desc="ProComponents 是一个基于 Ant Design 做了更高抽象的模板组件，以 一个组件就是一个页面为开发理念，为中后台开发带来更好的体验。"
-            /> */}
-          </div>
         </div>
       </Card>
       <Card
@@ -323,17 +347,36 @@ const Welcome: React.FC = () => {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ width: '50%' }}>
-              <Line {...config} />
+            <div style={{ width: '50%', height: '300px' }}>
+              <BarChart />
             </div>
-            <div style={{ width: '50%' }}>
-              <Line {...config} />
+            <div style={{ width: '50%', height: '300px' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', }}>
+                <Radio.Group value={activeTab} onChange={onTabChange} style={{}}>
+                  <Radio.Button value="1">近七日</Radio.Button>
+                  <Radio.Button value="2">按月</Radio.Button>
+                  <Radio.Button value="3">按年</Radio.Button>
+                </Radio.Group>
+              </div>
+              <LineChart1 />
             </div>
-            <div style={{ width: '50%' }}>
-              <Line {...config} />
+            <div style={{ width: '100%', height: '300px',marginTop:'10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', }}>
+                <Radio.Group value={activeRevenueTab} onChange={onRevenueTabChange} style={{ marginTop: 10, marginRight: 30 }}>
+                  <Radio.Button value="2">当月</Radio.Button>
+                  <Radio.Button value="3">当年</Radio.Button>
+                </Radio.Group>
+              </div>
+              <LineChart2 />
             </div>
-            <div style={{ width: '50%' }}>
-              <Line {...config} />
+            <div style={{ width: '100%', height: '300px',marginTop:'25px' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', }}>
+                <Radio.Group value={activeSMSTab} onChange={onSmsTabChange} style={{ marginTop: 10, marginRight: 30 }}>
+                  <Radio.Button value="2">当月</Radio.Button>
+                  <Radio.Button value="3">当年</Radio.Button>
+                </Radio.Group>
+              </div>
+              <LineChart3 />
             </div>
           </div>
         </div>
@@ -341,5 +384,31 @@ const Welcome: React.FC = () => {
     </PageContainer>
   );
 };
+
+const useStyles = createStyles(({ token }) => {
+  return {
+    tabs: {
+      backgroundColor: 'red'
+    },
+    chart1_active: {
+      background: 'pink',
+      padding: '5px 10px',
+      borderRadius: '2px'
+    },
+    action: {
+      display: 'flex',
+      height: '48px',
+      marginLeft: 'auto',
+      overflow: 'hidden',
+      alignItems: 'center',
+      padding: '0 8px',
+      cursor: 'pointer',
+      borderRadius: token.borderRadius,
+      '&:hover': {
+        backgroundColor: token.colorBgTextHover,
+      },
+    },
+  };
+});
 
 export default Welcome;

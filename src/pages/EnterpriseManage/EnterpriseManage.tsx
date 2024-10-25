@@ -1,5 +1,5 @@
-import { addRule, removeRule, removeBusiness, getList, updateRule, addBusiness, editBusiness, getLogList } from '@/services/ant-design-pro/api';
-import { PlusOutlined } from '@ant-design/icons';
+import { addRule, removeRule, removeBusiness, getList, getRechargeList,getCostList, updateRule,handleActivateService,handleEnableService, addBusiness, handleRechargeMoney,handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
+import { PlusOutlined,VerticalAlignBottomOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsActionType, ProFormInstance } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -13,7 +13,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button, Drawer, Input, message, Col, Row, Space, Cascader, Form, Popconfirm, Modal } from 'antd';
+import { Button, Drawer, Input, InputNumber, message, Col, Row, Space, Cascader, Form, Popconfirm, Modal } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
@@ -118,38 +118,21 @@ const handleRemove = async (selectedRows: API.RuleListItem) => {
   }
 };
 
-const handleRecharge = async (fields: any) => {
-  const hide = message.loading('更新中...');
-  try {
-    let res = await editBusiness({
-      ...fields,
-    });
-    if (res.code === '200') {
-      message.success('更新成功');
-      hide();
-    } else {
-      message.error(res.msg)
-    }
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Adding failed, please try again!');
-    return false;
-  }
-};
 
 const TableList: React.FC = () => {
   const modalFormRef = useRef<ProFormInstance>();
   const actionDesRef = useRef<ProDescriptionsActionType>();
   const rechargeRef = useRef<ActionType>();
+  const billingRef = useRef<ActionType>();
   /**
    * @en-US Pop-up window of new window
    * @zh-CN 新建窗口的弹窗
    *  */
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
-
+  // 充值记录弹窗
   const [isRechargeModalOpen, setRechargeModalOpen] = useState(false); // 充值弹窗
-
+  // 计费设置弹窗
+  const [isSettingsModalOpen, setSettingsModalOpen] = useState(false); // 充值弹窗
 
   const [businessTitle, editBusinessTitle] = useState<string>('新建企业');
 
@@ -166,6 +149,20 @@ const TableList: React.FC = () => {
   const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
   const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
 
+  const [rechargeAmount, setRechargeAmount] = useState(0);
+
+  const [smsBilling, setSmsBilling] = useState(0);
+  
+  const onMoneyChange = (value) => {
+    console.log('onMoneyChange', value);
+    setRechargeAmount(value)
+  };
+
+  const onCostChange = (value) => {
+    console.log('onCostChange', value);
+    setSmsBilling(value)
+  };
+
   /**
    * @en-US International configuration
    * @zh-CN 国际化配置
@@ -177,11 +174,19 @@ const TableList: React.FC = () => {
     //   dataIndex: 'businessId',
     //   tip: 'The rule name is the unique key',
     // },
+
     {
       title: '企业名称',
       dataIndex: 'name',
       valueType: 'textarea',
       search: false,
+      render: (dom, entity, other) => {
+        return (
+          <a>
+            {dom}
+          </a>
+        );
+      },
     },
     {
       title: '公司地址',
@@ -266,101 +271,155 @@ const TableList: React.FC = () => {
       title: '操作',
       dataIndex: 'option',
       valueType: 'option',
-      render: (_, record) => [
-        <a
-          key="config"
-          onClick={() => {
-            console.log('modalFormRef', modalFormRef);
-            handleModalOpen(true);
-            setTimeout(() => {
-              if (modalFormRef.current) {
-
-                let data = {
-                  ...record,
-                  allArea: [record.province, record.city, record.area]
+      render: (_, record) => {
+        let renderArr = [
+          <a
+            key="config"
+            onClick={() => {
+              console.log('modalFormRef', modalFormRef);
+              handleModalOpen(true);
+              setTimeout(() => {
+                if (modalFormRef.current) {
+  
+                  let data = {
+                    ...record,
+                    allArea: [record.province, record.city, record.area]
+                  }
+                  modalFormRef.current.setFieldsValue(data);
+  
+                  setCurrentRow(record);
+                  editBusinessTitle('编辑企业')
                 }
-                modalFormRef.current.setFieldsValue(data);
-
-                setCurrentRow(record);
-                editBusinessTitle('编辑企业')
+              })
+            }}
+          >
+            编辑
+          </a>,
+          <Popconfirm title="确定要删除该企业吗？" onConfirm={async () => {
+            await handleRemove(record)
+            if (actionRef.current) {
+              actionRef.current.reload();
+            }
+          }}>
+            <a>删除</a>
+          </Popconfirm>,
+          <a
+            onClick={() => {
+              // handleNotesModalOpen(true);
+              setShowDetail(true);
+              setCurrentRow(record);
+            }}
+            key="subscribeAlert"
+          >
+            备注
+          </a>,
+          <a
+            onClick={() => {
+              setRechargeModalOpen(true)
+              setCurrentRow(record);
+            }}
+            key="subscribeAlert"
+          >
+            充值
+          </a>,
+          <a
+            onClick={() => {
+              setSettingsModalOpen(true)
+              setCurrentRow(record);
+            }}
+            key="settingsModalOpenAlert"
+          >
+            计费设置
+          </a>,
+        ]
+        if(record.businessStatus == 1) {
+          renderArr.push(
+            <Popconfirm style={{ display: 'none' }} title="确定要禁用该企业吗？" onConfirm={async () => {
+               let result = await handleEnableService({
+                businessId: record.businessId
+              })
+              console.log('result11112222',result,);
+              if (actionRef.current) {
+                actionRef.current.reload();
               }
-            })
-          }}
-        >
-          编辑
-        </a>,
-        <Popconfirm title="确定要删除该企业吗？" onConfirm={async () => {
-          await handleRemove(record)
-          if (actionRef.current) {
-            actionRef.current.reload();
-          }
-        }}>
-          <a>删除</a>
-        </Popconfirm>,
-        <a
-          onClick={() => {
-            // handleNotesModalOpen(true);
-            setShowDetail(true);
-            setCurrentRow(record);
-          }}
-          key="subscribeAlert"
-        >
-          备注
-        </a>,
-        <a
-          onClick={() => {
-            setRechargeModalOpen(true)
-            setCurrentRow(record);
-          }}
-          key="subscribeAlert"
-        >
-          充值
-        </a>,
-        // <a
-        //   onClick={() => {
-        //     // handleNotesModalOpen(true);
-        //     setShowDetail(true);
-        //     setCurrentRow(record);
-        //   }}
-        //   key="subscribeAlert"
-        // >
-        //   计费设置
-        // </a>,
-        // <a
-        //   onClick={() => {
-        //     // handleNotesModalOpen(true);
-        //     setShowDetail(true);
-        //     setCurrentRow(record);
-        //   }}
-        //   key="subscribeAlert"
-        // >
-        //   暂停服务
-        // </a>,
-        // <a
-        //   onClick={() => {
-        //     // handleNotesModalOpen(true);
-        //     setShowDetail(true);
-        //     setCurrentRow(record);
-        //   }}
-        //   key="subscribeAlert"
-        // >
-        //   开启服务
-        // </a>,
-      ],
+            }}>
+              <a>暂停服务</a>
+            </Popconfirm>
+          )
+        }else {
+          renderArr.push(
+            <Popconfirm style={{ display: 'none' }} title="确定要开启服务吗？" onConfirm={async () => {
+              let result = await handleActivateService({
+                businessId: record.businessId
+              })
+              console.log('result1111',result);
+              if (actionRef.current) {
+                actionRef.current.reload();
+              }
+            }}>
+              <a>开启服务</a>
+            </Popconfirm>
+          )
+
+        }
+        return renderArr
+      }
     },
+  ];
+
+  const billingColumns = [
+    {
+      title: '修改内容',
+      dataIndex: 'remark',
+      valueType: 'textarea',
+      search: false,
+    },
+    {
+      title: '修改人',
+      dataIndex: 'createBy',
+      valueType: 'textarea',
+      search: false,
+    },
+    {
+      title: '修改时间',
+      sorter: true,
+      dataIndex: 'date',
+      valueType: 'dateTime',
+      search: false,
+      renderFormItem: (item, { defaultRender, ...rest }, form) => {
+        const status = form.getFieldValue('status');
+        if (`${status}` === '0') {
+          return false;
+        }
+        if (`${status}` === '3') {
+          return <Input {...rest} placeholder={'请输入异常原因！'} />;
+        }
+        return defaultRender(item);
+      },
+    },
+    
   ];
 
   const rechargeColumns: ProColumns<API.RuleListItem>[] = [
     {
+      title: '序号',
+      dataIndex: 'index',
+      valueType: 'textarea',
+      search: false,
+      render: (dom, entity, index) => {
+        return index + 1;
+      },
+    },
+    {
       title: '充值金额（元）',
-      dataIndex: 'name',
+      dataIndex: 'rechargeMoney',
       valueType: 'textarea',
       search: false,
     },
     {
       title: '充值时间',
       sorter: true,
-      dataIndex: 'createTime',
+      dataIndex: 'date',
       valueType: 'dateTime',
       search: false,
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
@@ -376,7 +435,7 @@ const TableList: React.FC = () => {
     },
     {
       title: '操作人',
-      dataIndex: 'balance',
+      dataIndex: 'createBy',
       valueType: 'textarea',
       search: false,
     },
@@ -393,6 +452,7 @@ const TableList: React.FC = () => {
       <ProTable<API.RuleListItem, API.PageParams>
         headerTitle={'查询表格'}
         actionRef={actionRef}
+        options={false}
         rowKey="key"
         search={{
           labelWidth: 120,
@@ -410,16 +470,26 @@ const TableList: React.FC = () => {
               handleModalOpen(true);
             }}
           >
-            <PlusOutlined /> 新建
+            <PlusOutlined /> 开通企业
           </Button>,
+          <Button
+          type="primary"
+          key="primary"
+          onClick={() => {
+            setCurrentRow({})
+            if (modalFormRef.current) {
+              editBusinessTitle('新建企业')
+              modalFormRef.current.resetFields()
+            }
+            handleModalOpen(true);
+          }}
+        >
+          <VerticalAlignBottomOutlined /> 导出
+        </Button>,
         ]}
         request={getList}
         columns={columns}
-        rowSelection={{
-          onChange: (_, selectedRows) => {
-            setSelectedRows(selectedRows);
-          },
-        }}
+        rowSelection={false}
       />
       {selectedRowsState?.length > 0 && (
         <FooterToolbar
@@ -616,40 +686,61 @@ const TableList: React.FC = () => {
         />
       </ModalForm>
       {/* 企业充值 */}
-      <Modal width={1000} title="企业充值" open={isRechargeModalOpen} onOk={handleRecharge} onCancel={() => setRechargeModalOpen(false)}>
+      <Modal width={1000} footer="" title="企业充值" open={isRechargeModalOpen} onCancel={() => setRechargeModalOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <Form.Item
             label="公司地址"
             name="allArea"
             style={{ marginRight: 30 }}
           >
-            <span>比亚迪</span>
+            <span>{currentRow?.name}</span>
           </Form.Item>
-          <ProFormText
-            width="md"
-            name="address"
+          <Form.Item
             label="充值金额"
-            placeholder="请输入充值金额（元）"
-
-          />
+            name=""
+            style={{ marginRight: 30 }}
+          >
+            <InputNumber
+              style={{ width: 200 }}
+              // defaultValue="0"
+              value={rechargeAmount}
+              min="0"
+              max="1000"
+              step="1"
+              suffix="RMB1"
+              controls={false}
+              onChange={onMoneyChange}
+            />
+          </Form.Item>
           <Button
             style={{ marginLeft: 30 }}
             type="primary"
             key="primary"
-            onClick={() => {
+            onClick={async () => {
+              let payload = {
+                businessId: currentRow.businessId,
+                rechargeMoney: rechargeAmount
+              }
+              console.log('充值金额', payload);
+              delete payload.method
+              setRechargeAmount(0)
+              let result = await handleRechargeMoney(payload)
+              console.log('rechargeMoney 金额', rechargeAmount);
+
+              console.log('result', result);
+              if (rechargeRef.current) {
+                setRechargeAmount(0)
+                rechargeRef.current.reload();
+              }
             }}
           >
             确认
           </Button>
-
         </div>
         <ProTable<API.RuleListItem, API.PageParams>
           headerTitle={'充值记录'}
           actionRef={rechargeRef}
           rowKey="key"
-          // search={{
-          //   labelWidth: 120,
-          // }}
           options={false}
           search={false}
           toolBarRender={() => [
@@ -668,13 +759,87 @@ const TableList: React.FC = () => {
               <PlusOutlined /> 新建
             </Button>,
           ]}
-          request={getList}
-          columns={rechargeColumns}
-          rowSelection={{
-            onChange: (_, selectedRows) => {
-              setSelectedRows(selectedRows);
-            },
+          request={(params) => {
+            console.log('paramsparams', params);
+            let payload = {
+              ...params,
+              pageSize: 10
+            }
+            return getRechargeList(payload)
           }}
+          columns={rechargeColumns}
+          rowSelection={false}
+        />
+      </Modal>
+      {/* 计费设置 */}
+      <Modal width={1000} footer="" title="计费设置" open={isSettingsModalOpen} onCancel={() => setSettingsModalOpen(false)}>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <Form.Item
+            label="企业名称"
+            name="allArea"
+            style={{ marginRight: 30 }}
+          >
+            <span>{currentRow?.name}</span>
+          </Form.Item>
+          <Form.Item
+            label="短信计费"
+            name=""
+            style={{ marginRight: 30 }}
+          >
+            <InputNumber
+              style={{ width: 200 }}
+              // defaultValue="0"
+              value={smsBilling}
+              min="0"
+              max="1000"
+              step="1"
+              suffix="RMB"
+              controls={false}
+              onChange={onCostChange}
+            />
+          </Form.Item>
+          <Button
+            style={{ marginLeft: 30 }}
+            type="primary"
+            key="primary"
+            onClick={async () => {
+              let payload = {
+                businessId: currentRow.businessId,
+                cost: smsBilling
+              }
+              console.log('充值金额', payload);
+              delete payload.method
+              setSmsBilling(0)
+              let result = await handleUpdateCost(payload)
+              console.log('计费设置 金额', smsBilling);
+
+              console.log('result', result);
+              if (billingRef.current) {
+                setSmsBilling(0)
+                billingRef.current.reload();
+              }
+            }}
+          >
+            确认
+          </Button>
+        </div>
+        <ProTable<API.RuleListItem, API.PageParams>
+          headerTitle={'修改记录'}
+          actionRef={billingRef}
+          rowKey="key"
+          options={false}
+          search={false}
+          toolBarRender={() => [ ]}
+          request={(params) => {
+            console.log('paramsparams', params);
+            let payload = {
+              ...params,
+              pageSize: 10
+            }
+            return getCostList(payload)
+          }}
+          columns={billingColumns}
+          rowSelection={false}
         />
       </Modal>
       <ModalForm

@@ -1,4 +1,4 @@
-import { addRule, removeRule, rule, updateRule, getEmployeeList, getPlatformRoleList, handleAccountEdit,handleEmployeeAdd, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
+import { addRule, removeRule, rule, updateRule, getEmployeeList, getPlatformRoleList, handleAccountEdit,handleEmployeeRemove, handleEmployeeAdd, handleEmployeeUpdate, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps, ProFormInstance } from '@ant-design/pro-components';
 import {
@@ -105,6 +105,7 @@ const TableList: React.FC = () => {
   const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
   const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
   const [roles, setRoles] = useState({});
+  const [modalTitle, setModalTitle] = useState('新建账户')
 
   useEffect(() => {
     getPlatformRoleList().then(res => {
@@ -114,7 +115,7 @@ const TableList: React.FC = () => {
       })
       setRoles(valueEnum)
     })
-  },[])
+  }, [])
 
   /**
    * @en-US International configuration
@@ -187,6 +188,7 @@ const TableList: React.FC = () => {
             key="config"
             onClick={() => {
               handleModalOpen(true);
+              setModalTitle('编辑账户')
               setTimeout(() => {
                 if (modalFormRef.current) {
                   modalFormRef.current.setFieldsValue(record);
@@ -202,7 +204,7 @@ const TableList: React.FC = () => {
         if (record.accountType != 1) {
           renderArr.push(
             <Popconfirm style={{ display: 'none' }} title="确定要删除该企业吗？" onConfirm={async () => {
-              await handleAccountRemove({
+              await handleEmployeeRemove({
                 userId: record.userId
               })
               if (actionRef.current) {
@@ -261,6 +263,10 @@ const TableList: React.FC = () => {
             key="primary"
             onClick={() => {
               handleModalOpen(true);
+              if (modalFormRef.current) {
+                setModalTitle('新建账户')
+                modalFormRef.current.resetFields()
+              }
             }}
           >
             <PlusOutlined /> 创建账号
@@ -307,7 +313,7 @@ const TableList: React.FC = () => {
       )}
       <ModalForm
         {...formItemLayout}
-        title={'新建账户'}
+        title={modalTitle}
         width="400px"
         open={createModalOpen}
         formRef={modalFormRef}
@@ -328,14 +334,20 @@ const TableList: React.FC = () => {
           console.log('handleAccountEdit', value);
           let payload = {
             ...value,
-            roleIdList:[value.roleIdList]
+            roleIdList: [value.roleIdList]
           }
           delete payload.method
-          console.log('payloadpayload',payload);
-          const result = await handleEmployeeAdd(payload as API.RuleListItem);
-          console.log('success', result);
+          let result = {}
+          if (modalTitle === '编辑账户') {
+            result = await handleEmployeeUpdate({
+              ...payload,
+              roleId: currentRow?.roleId
+            });
+          } else {
+            result = await handleEmployeeAdd(payload as API.RuleListItem);
+          }
           if (result.code === '200') {
-            message.success('新增成功');
+            message.success(modalTitle === '编辑账户' ? '修改成功' : '创建成功');
             handleModalOpen(false);
             if (actionRef.current) {
               actionRef.current.reload();
@@ -394,18 +406,22 @@ const TableList: React.FC = () => {
           width="md"
           label="角色"
           valueEnum={roles}
+          initialValue={currentRow?.roleNames}
         />
-        <ProFormText
-          rules={[
-            {
-              required: true,
-              message: '规则名称为必填项',
-            },
-          ]}
-          label="初始密码"
-          width="md"
-          name="password"
-        />
+        {
+          modalTitle === '新建账户' ?
+            <ProFormText
+              rules={[
+                {
+                  required: true,
+                  message: '规则名称为必填项',
+                },
+              ]}
+              label="初始密码"
+              width="md"
+              name="password"
+            /> : null
+        }
       </ModalForm>
       <UpdateForm
         onSubmit={async (value) => {
