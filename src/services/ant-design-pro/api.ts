@@ -73,7 +73,6 @@ export async function getLogList(
 }
 
 
-// 获取备注列表
 export async function getBusinessCount() {
   return request<API.RuleList>('/api/v1/admin/home/platform/statistics/business/count', {
     method: 'GET',
@@ -81,8 +80,6 @@ export async function getBusinessCount() {
   });
 }
 
-
-// 获取备注列表
 export async function getBusinessConsumption(
   params: {
     businessId?: string;
@@ -105,7 +102,6 @@ export async function getRevenueData(
   },
   options?: { [key: string]: any },
 ) {
-  console.log('列表翻页接口', params);
   return request<API.RuleList>('/api/v1/admin/home/platform/statistics/revenue', {
     method: 'GET',
     params: {
@@ -462,8 +458,16 @@ export async function handleActivateService(options?: { [key: string]: any }) {
   });
 }
 
+export async function handleExamine(options?: { [key: string]: any }) {
+  return request<API.RuleListItem>('/api/v1/admin/platform/business/check', {
+    method: 'POST',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+  });
+}
 // 禁用服务
-
 export async function handleEnableService(options?: { [key: string]: any }) {
   return request<API.RuleListItem>('/api/v1/admin/platform/business/disable', {
     method: 'POST',
@@ -565,5 +569,91 @@ export async function handleAccountDisable(options?: { [key: string]: any }) {
   });
 }
 
+function toQueryString(obj) {
+  return Object.keys(obj)
+    .map((key) => {
+      if (Array.isArray(obj[key])) {
+        return obj[key]
+          .map((arrayValue) => `${encodeURIComponent(key)}=${encodeURIComponent(arrayValue)}`)
+          .join('&');
+      }
+      return `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`;
+    })
+    .join('&');
+}
 
+
+export async function exportFile(url: string, options?: { [key: string]: any }) {
+  let _params = toQueryString(options);
+  let _url = url;
+  if (Object.keys(options).length) {
+    _url += '?' + _params;
+  }
+  console.log('optionsoptions',options);
+  
+  return request<{
+    data: API.CurrentUser;
+  }>(_url, {
+    method: 'POST',
+    responseType: 'blob',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+    // ...(options || {}),
+  })
+    .then((response) => {
+      console.log('导出文件结果', response);
+      // 创建一个指向Blob的URL
+      const blobUrl = URL.createObjectURL(response);
+
+      // 创建一个临时的下载链接
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = '导出数据.xlsx'; // 设置下载文件名
+
+      // 触发下载
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+
+      // 清理临时元素和URL对象
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch((error) => {
+      // 处理错误
+      console.error('下载失败:', error);
+    });
+}
+
+
+export async function getCaptcha(options?: { [key: string]: any }) {
+  return request<API.RuleListItem>('/api/v1/admin/sms/code', {
+    method: 'POST',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+  });
+}
+
+export async function findPwd(options?: { [key: string]: any }) {
+  return request<API.RuleListItem>('/api/v1/admin/find/password', {
+    method: 'POST',
+    data: {
+      method: 'post',
+      ...(options || {}),
+    },
+  });
+}
+export async function mobileLogin(body: API.LoginParams, options?: { [key: string]: any }) {
+  return request<API.LoginResult>('/api/v1/admin/loginByCode', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
 

@@ -1,4 +1,3 @@
-import { Line } from '@ant-design/charts';
 import { getBusinessCount, getBusinessConsumption, getRevenueData, getSmsData } from '@/services/ant-design-pro/api';
 
 import { EditOutlined, FundOutlined } from '@ant-design/icons';
@@ -7,20 +6,8 @@ import { Link, useModel } from '@umijs/max';
 import { Button, Card, theme, Radio } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useRef, useState } from 'react';
-import { Column } from '@ant-design/plots';
 import ReactEcharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-
-const data = [
-  { type: '已注册企业', value: 100 },
-  { type: '认证企业', value: 200 },
-  { type: '未认证企业', value: 20 },
-  { type: '待提交认证企业', value: 102 },
-  { type: '认证中企业', value: 88 },
-  { type: '认证未通过企业', value: 3 },
-];
-
-
 
 
 const Welcome: React.FC = () => {
@@ -39,37 +26,51 @@ const Welcome: React.FC = () => {
   // 平台短信条数数据
   const [smsCountArr, setSmsCount] = useState([]); // 企业消费图表
 
-
-
   const onTabChange = (e: RadioChangeEvent) => {
     setActiveTab(e.target.value);
+    getBusinessConsumptionFn(e.target.value)
+
   };
   const onRevenueTabChange = (e: RadioChangeEvent) => {
     setRevenueActiveTab(e.target.value);
+    getRevenueDataFn(e.target.value)
   };
   const onSmsTabChange = (e: RadioChangeEvent) => {
     setSMSActiveTab(e.target.value);
+    getSmsDataFn(e.target.value)
   };
+
+  const getBusinessConsumptionFn = (type = 1) => {
+    getBusinessConsumption({
+      type: type
+    }).then(res => {
+      setBusinessConsumption(res.list)
+    })
+  }
+  const getRevenueDataFn = (type = 2) => {
+    getRevenueData({
+      type: type
+    }).then(res => {
+      setRevenue(res.list)
+    })
+  }
+
+  const getSmsDataFn = (type = 2) => {
+    getSmsData({
+      type: type
+    }).then(res => {
+      setSmsCount(res.list)
+    })
+
+  }
 
   useEffect(() => {
     getBusinessCount().then(res => {
       setBusinessCount(res.list)
     })
-    getBusinessConsumption({
-      type: activeTab
-    }).then(res => {
-      setBusinessConsumption(res.list)
-    })
-    getRevenueData({
-      type: activeRevenueTab
-    }).then(res => {
-      setRevenue(res.list)
-    })
-    getSmsData({
-      type: activeSMSTab
-    }).then(res => {
-      setSmsCount(res.list)
-    })
+    getBusinessConsumptionFn(1)
+    getRevenueDataFn(2)
+    getSmsDataFn(2)
   }, [])
   // 柱状图
   const BarChart = () => {
@@ -81,10 +82,15 @@ const Welcome: React.FC = () => {
           type: 'shadow'
         }
       },
+      legend: {
+        show: true,
+        bottom: 0
+      },
       grid: {
+        top: '5%',
         left: '3%',
         right: '4%',
-        bottom: '3%',
+        bottom: '10%',
         containLabel: true
       },
       xAxis: [
@@ -98,13 +104,18 @@ const Welcome: React.FC = () => {
       ],
       yAxis: [
         {
-          type: 'value'
+          type: 'value',
+          minInterval: 1
         }
       ],
       series: [
         {
           name: '平台企业数量',
           type: 'bar',
+          label: {
+            show: true,
+            position: 'top'
+          },
           barWidth: '60%',
           data: businessCountArr.map(item => item.count)
         }
@@ -123,9 +134,9 @@ const Welcome: React.FC = () => {
         }
       },
       legend: {
-        data:['平台企业消费'],
+        data: ['平台企业消费'],
         bottom: -5,
-    },
+      },
       xAxis: {
         type: 'category',
         data: businessConsumptionArr.map(item => item.date)
@@ -134,7 +145,7 @@ const Welcome: React.FC = () => {
         left: '3%',
         right: '4%',
         bottom: '12%',
-        top:'5%',
+        top: '8%',
         containLabel: true
       },
       yAxis: {
@@ -144,7 +155,7 @@ const Welcome: React.FC = () => {
         {
 
           name: '平台企业消费',
-          data: [820, 932, 901, 934, 1290, 1330, 1320],
+          data: businessConsumptionArr.map(item => item.consumption),
           type: 'line',
           smooth: true,
           label: {
@@ -166,14 +177,14 @@ const Welcome: React.FC = () => {
         }
       },
       legend: {
-        data:['平台营收'],
+        data: ['平台营收'],
         bottom: -5,
-    },
+      },
       grid: {
         left: '3%',
         right: '4%',
         bottom: '12%',
-        top:'5%',
+        top: '5%',
         containLabel: true
       },
       xAxis: {
@@ -208,21 +219,22 @@ const Welcome: React.FC = () => {
         }
       },
       legend: {
-        data:['平台接收短信（条）,平台发送短信（条）'],
-        bottom: -5,
-    },
+        data: ['平台接收短信（条）', '平台发送短信（条）'],
+        bottom: 0,
+      },
       xAxis: {
         type: 'category',
         data: smsCountArr.map(item => item.date)
       },
       yAxis: {
-        type: 'value'
+        type: 'value',
+        minInterval: 1
       },
       grid: {
         left: '3%',
         right: '4%',
-        bottom: '12%',
-        top:'5%',
+        bottom: '10%',
+        top: '10%',
         containLabel: true
       },
       series: [
@@ -299,7 +311,7 @@ const Welcome: React.FC = () => {
           >
             欢迎使用杰讯互联短信管理平台
           </div>
-          <p
+          {/* <p
             style={{
               fontSize: '14px',
               color: token.colorTextSecondary,
@@ -309,15 +321,16 @@ const Welcome: React.FC = () => {
               width: '65%',
             }}
           >
-            Ant Design Pro 是一个整合了 umi，Ant Design 和 ProComponents
+            这是一段平台介绍文本：Ant Design Pro 是一个整合了 umi，Ant Design 和 ProComponents
             的脚手架方案。致力于在设计规范和基础组件的基础上，继续向上构建，提炼出典型模板/业务组件/配套设计资源，进一步提升企业级中后台产品设计研发过程中的『用户』和『设计者』的体验。
-          </p>
+          </p> */}
         </div>
       </Card>
       <Card
         style={{
           borderRadius: 8,
           marginTop: 10,
+          paddingBottom: 30
         }}
         bodyStyle={{
           backgroundImage:
@@ -347,7 +360,7 @@ const Welcome: React.FC = () => {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ width: '50%', height: '300px' }}>
+            <div style={{ width: '50%', height: '300px', paddingTop: 30 }}>
               <BarChart />
             </div>
             <div style={{ width: '50%', height: '300px' }}>
@@ -360,7 +373,7 @@ const Welcome: React.FC = () => {
               </div>
               <LineChart1 />
             </div>
-            <div style={{ width: '100%', height: '300px',marginTop:'10px' }}>
+            <div style={{ width: '100%', height: '300px', marginTop: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', }}>
                 <Radio.Group value={activeRevenueTab} onChange={onRevenueTabChange} style={{ marginTop: 10, marginRight: 30 }}>
                   <Radio.Button value="2">当月</Radio.Button>
@@ -369,7 +382,7 @@ const Welcome: React.FC = () => {
               </div>
               <LineChart2 />
             </div>
-            <div style={{ width: '100%', height: '300px',marginTop:'25px' }}>
+            <div style={{ width: '100%', height: '300px', marginTop: '25px' }}>
               <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', }}>
                 <Radio.Group value={activeSMSTab} onChange={onSmsTabChange} style={{ marginTop: 10, marginRight: 30 }}>
                   <Radio.Button value="2">当月</Radio.Button>

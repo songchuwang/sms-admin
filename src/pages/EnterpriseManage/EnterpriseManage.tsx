@@ -1,5 +1,5 @@
-import { addRule, removeRule, removeBusiness, getList, getRechargeList,getCostList, updateRule,handleActivateService,handleEnableService, addBusiness, handleRechargeMoney,handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
-import { PlusOutlined,VerticalAlignBottomOutlined } from '@ant-design/icons';
+import { addRule, removeRule,exportFile, removeBusiness,handleExamine, getList, getRechargeList, getCostList, updateRule, handleActivateService, handleEnableService, addBusiness, handleRechargeMoney, handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
+import { PlusOutlined, VerticalAlignBottomOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsActionType, ProFormInstance } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -71,6 +71,8 @@ const handleEdit = async (fields: API.RuleListItem) => {
   }
 };
 
+const downLoadUrl = '/api/v1/admin/platform/business/export';
+
 /**
  * @en-US Update node
  * @zh-CN 更新节点
@@ -134,6 +136,8 @@ const TableList: React.FC = () => {
   // 计费设置弹窗
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false); // 充值弹窗
 
+  // const [examineModalOpen, setExamineModalOpen] = useState(false); // 充值弹窗
+
   const [businessTitle, editBusinessTitle] = useState<string>('新建企业');
 
   const [examineModalOpen, handleExamineModalOpen] = useState<boolean>(false);
@@ -152,7 +156,14 @@ const TableList: React.FC = () => {
   const [rechargeAmount, setRechargeAmount] = useState(0);
 
   const [smsBilling, setSmsBilling] = useState(0);
-  
+
+  const [isShowReason, showReason] = useState(false);
+
+  const [businessLicense, setBusinessLicense] = useState<string>('')
+  const [powerOfAttorney, setPowerOfAttorney] = useState<string>('')
+
+  const [downloadFileParams, saveDownloadFileParams] = useState({});
+
   const onMoneyChange = (value) => {
     console.log('onMoneyChange', value);
     setRechargeAmount(value)
@@ -163,18 +174,12 @@ const TableList: React.FC = () => {
     setSmsBilling(value)
   };
 
-  /**
-   * @en-US International configuration
-   * @zh-CN 国际化配置
-   * */
-
   const columns: ProColumns<API.RuleListItem>[] = [
     // {
     //   title: '企业编号',
     //   dataIndex: 'businessId',
     //   tip: 'The rule name is the unique key',
     // },
-
     {
       title: '企业名称',
       dataIndex: 'name',
@@ -280,13 +285,13 @@ const TableList: React.FC = () => {
               handleModalOpen(true);
               setTimeout(() => {
                 if (modalFormRef.current) {
-  
+
                   let data = {
                     ...record,
                     allArea: [record.province, record.city, record.area]
                   }
                   modalFormRef.current.setFieldsValue(data);
-  
+
                   setCurrentRow(record);
                   editBusinessTitle('编辑企业')
                 }
@@ -332,13 +337,26 @@ const TableList: React.FC = () => {
             计费设置
           </a>,
         ]
-        if(record.businessStatus == 1) {
+        if (record.status === 1) {
+          renderArr.unshift(
+            <a
+              onClick={() => {
+                handleExamineModalOpen(true)
+                setCurrentRow(record);
+              }}
+              key="subscribeAlert"
+            >
+              审核
+            </a>
+          )
+        }
+        if (record.businessStatus == 1) {
           renderArr.push(
             <Popconfirm style={{ display: 'none' }} title="确定要禁用该企业吗？" onConfirm={async () => {
-               let result = await handleEnableService({
+              let result = await handleEnableService({
                 businessId: record.businessId
               })
-              console.log('result11112222',result,);
+              console.log('result11112222', result,);
               if (actionRef.current) {
                 actionRef.current.reload();
               }
@@ -346,13 +364,13 @@ const TableList: React.FC = () => {
               <a>暂停服务</a>
             </Popconfirm>
           )
-        }else {
+        } else {
           renderArr.push(
             <Popconfirm style={{ display: 'none' }} title="确定要开启服务吗？" onConfirm={async () => {
               let result = await handleActivateService({
                 businessId: record.businessId
               })
-              console.log('result1111',result);
+              console.log('result1111', result);
               if (actionRef.current) {
                 actionRef.current.reload();
               }
@@ -397,8 +415,17 @@ const TableList: React.FC = () => {
         return defaultRender(item);
       },
     },
-    
+
   ];
+
+  const handleDownLoadFile = () => {
+    console.log('downloadFileParams', downloadFileParams);
+    exportFile(downLoadUrl, downloadFileParams);
+  };
+
+  const onExamineChange = (value) => {
+    console.log('onExamineChange', value);
+  }
 
   const rechargeColumns: ProColumns<API.RuleListItem>[] = [
     {
@@ -473,21 +500,27 @@ const TableList: React.FC = () => {
             <PlusOutlined /> 开通企业
           </Button>,
           <Button
-          type="primary"
-          key="primary"
-          onClick={() => {
-            setCurrentRow({})
-            if (modalFormRef.current) {
-              editBusinessTitle('新建企业')
-              modalFormRef.current.resetFields()
-            }
-            handleModalOpen(true);
-          }}
-        >
-          <VerticalAlignBottomOutlined /> 导出
-        </Button>,
+            type="primary"
+            key="primary"
+            onClick={() => {
+              handleDownLoadFile();
+            }}
+          >
+            <VerticalAlignBottomOutlined /> 导出
+          </Button>,
         ]}
-        request={getList}
+        request={(params) => {
+          let payload = {
+            ...params,
+            pageNum: params.current,
+          };
+          delete payload.current;
+          let downloadFileParams = JSON.parse(JSON.stringify(params));
+          delete downloadFileParams.current;
+          delete downloadFileParams.pageSize;
+          saveDownloadFileParams(downloadFileParams);
+          return getList(payload);
+        }}
         columns={columns}
         rowSelection={false}
       />
@@ -829,7 +862,7 @@ const TableList: React.FC = () => {
           rowKey="key"
           options={false}
           search={false}
-          toolBarRender={() => [ ]}
+          toolBarRender={() => []}
           request={(params) => {
             console.log('paramsparams', params);
             let payload = {
@@ -843,13 +876,61 @@ const TableList: React.FC = () => {
         />
       </Modal>
       <ModalForm
+        {...formItemLayout}
         title={'短信审核'}
-        width="400px"
+        width="600px"
         open={examineModalOpen}
+        layout={'horizontal'}
         onOpenChange={handleExamineModalOpen}
+        onValuesChange={(changeValues) => {
+          console.log(changeValues)
+          if (changeValues.examine == '2') {
+            showReason(false)
+          } else if (changeValues.examine == '3') {
+            showReason(true)
+          }
+        }}
+        request={async () => {
+          console.log('currentRow123', currentRow);
+          setBusinessLicense(currentRow.businessLicense)
+          setPowerOfAttorney(currentRow.powerOfAttorney)
+          return {
+            ...currentRow,
+            allArea: `${currentRow.province}${currentRow.city}${currentRow.area}${currentRow.address}`
+            // name: data.name,
+            // allArea: [data.province, data.city, data.area],
+            // address: data.address,
+          };
+        }}
+        submitter={{
+          render: (props, doms) => {
+            return (
+              <Row>
+                <Col span={14} offset={2}>
+                  <Space>{doms}</Space>
+                </Col>
+              </Row>
+            )
+          },
+        }}
         onFinish={async (value) => {
-          const success = await handleAdd(value as API.RuleListItem);
-          if (success) {
+          console.log('onFinish1111', value);
+          let payload = {
+            businessId: currentRow.businessId,
+            status: value.examine,
+          }
+          if(value.examine == 3) {
+            payload['remark'] = value.remark
+          }
+          console.log('提交审核',payload);
+          
+          const result = await handleExamine(payload as API.RuleListItem);
+          if (result) {
+            if(result.code == '200') {
+              message.success(result.msg)
+            }else {
+              message.error(result.msg)
+            }
             handleExamineModalOpen(false);
             if (actionRef.current) {
               actionRef.current.reload();
@@ -857,41 +938,91 @@ const TableList: React.FC = () => {
           }
         }}
       >
-        <ProFormRadio.Group
-          name="type"
-          label={''}
-          options={[
-            {
-              value: '0',
-              label: '通过，允许发送短信',
-            },
-            {
-              value: '1',
-              label: '驳回，不允许发送短信',
-            },
-          ]}
-        />
-        {/* <ProFormText
+        <ProFormText
           rules={[
             {
               required: true,
               message: '规则名称为必填项',
             },
           ]}
+          disabled
+          label={'企业名称'}
           width="md"
           name="name"
-        /> */}
-        <ProFormTextArea
-          width="md"
-          name="desc"
-          placeholder="请输入驳回原因"
+        />
+        <ProFormText
           rules={[
             {
               required: true,
-              message: '请输入驳回原因',
+              message: '规则名称为必填项',
+            },
+          ]}
+          disabled
+          label={'企业地址'}
+          width="md"
+          name="allArea"
+        />
+        <ProFormText
+          rules={[
+            {
+              required: true,
+              message: '规则名称为必填项',
+            },
+          ]}
+          disabled
+          label={'提交人'}
+          width="md"
+          name="account"
+        />
+        <Form.Item
+          label="职业执照"
+          name="allArea"
+          rules={[{ required: true, message: '请选择公司地址' }]}
+        >
+          {businessLicense ? <img onClick={() => window.open(currentRow.businessLicense)} src={businessLicense} alt="avatar" style={{ display: 'inline-block', width: '100%', maxWidth: '200px', height: 'auto', cursor: 'pointer' }} /> : null}
+        </Form.Item>
+        <Form.Item
+          label="授权书"
+          name="allArea"
+          rules={[{ required: true, message: '请选择公司地址' }]}
+        >
+          <Button onClick={() => window.open(currentRow.powerOfAttorney)} type="link">短信平台服务申请授权书.docx</Button>
+        </Form.Item>
+        <ProFormRadio.Group
+          name="examine"
+          label={'审核结果'}
+          rules={[
+            {
+              required: true,
+              message: '请选择审核结果',
+            },
+          ]}
+          options={[
+            {
+              value: '2',
+              label: '同意，认证通过',
+            },
+            {
+              value: '3',
+              label: '不同意，认证不通过',
             },
           ]}
         />
+        {
+          isShowReason ?
+            <ProFormTextArea
+              width="md"
+              name="remark"
+              label={'拒绝原因'}
+              placeholder="请输入驳回原因"
+              rules={[
+                {
+                  required: true,
+                  message: '请输入驳回原因',
+                },
+              ]}
+            /> : null
+        }
       </ModalForm>
       <ModalForm
         title={'备注'}

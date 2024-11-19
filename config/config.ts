@@ -54,7 +54,8 @@ export default defineConfig({
   // proxy: proxy[REACT_APP_ENV as keyof typeof proxy],
   proxy: {
     '/api/v1/': {
-      target: 'http://127.0.0.1:9088/',
+      // target: 'http://127.0.0.1:9088/',
+      target:'https://smsapi.bdcjx.com',
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },
@@ -80,7 +81,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: '杰讯互联短信平台',
   layout: {
     locale: true,
     ...defaultSettings,
