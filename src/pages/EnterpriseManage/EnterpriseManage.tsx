@@ -1,4 +1,4 @@
-import { addRule, removeRule,exportFile, removeBusiness,handleExamine, getList, getRechargeList, getCostList, updateRule, handleActivateService, handleEnableService, addBusiness, handleRechargeMoney, handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
+import { addRule, removeRule,exportFile, removeBusiness,handleExamine, getList, getRechargeList,businessRechargeExport, getCostList, updateRule, handleActivateService, handleEnableService, addBusiness, handleRechargeMoney, handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
 import { PlusOutlined, VerticalAlignBottomOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsActionType, ProFormInstance } from '@ant-design/pro-components';
 import {
@@ -19,6 +19,7 @@ import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 import { areaList } from '../../../public/area';
 import type { CascaderProps } from 'antd';
+import moment from 'moment';
 
 interface Option {
   value: string;
@@ -185,13 +186,13 @@ const TableList: React.FC = () => {
       dataIndex: 'name',
       valueType: 'textarea',
       search: false,
-      render: (dom, entity, other) => {
-        return (
-          <a>
-            {dom}
-          </a>
-        );
-      },
+      // render: (dom, entity, other) => {
+      //   return (
+      //     <a>
+      //       {dom}
+      //     </a>
+      //   );
+      // },
     },
     {
       title: '公司地址',
@@ -230,20 +231,18 @@ const TableList: React.FC = () => {
     },
     {
       title: '开通时间',
-      sorter: true,
       dataIndex: 'createTime',
-      valueType: 'dateTime',
-      renderFormItem: (item, { defaultRender, ...rest }, form) => {
-        const status = form.getFieldValue('status');
-        if (`${status}` === '0') {
-          return false;
-        }
-        if (`${status}` === '3') {
-          return <Input {...rest} placeholder={'请输入异常原因！'} />;
-        }
-        return defaultRender(item);
+      valueType: 'dateRange',
+      search: {
+        transform: (value) => {
+          return { startTime: new Date(value[0]).getTime(), endTime: new Date(value[1]).getTime() };
+        },
+      },
+      render: (_, record) => {
+        return <span>{moment(record.createTime).format('YYYY-MM-DD HH:mm:ss')}</span>;
       },
     },
+    
     {
       title: '账户余额',
       dataIndex: 'balance',
@@ -255,6 +254,13 @@ const TableList: React.FC = () => {
       dataIndex: 'cost',
       valueType: 'textarea',
       search: false,
+      render: (dom, entity, other) => {
+        return (
+          <span>
+            {dom.toFixed(2)}
+          </span>
+        );
+      },
     },
     {
       title: '企业状态',
@@ -310,11 +316,10 @@ const TableList: React.FC = () => {
           </Popconfirm>,
           <a
             onClick={() => {
-              // handleNotesModalOpen(true);
               setShowDetail(true);
               setCurrentRow(record);
             }}
-            key="subscribeAlert"
+            key="bz"
           >
             备注
           </a>,
@@ -322,8 +327,11 @@ const TableList: React.FC = () => {
             onClick={() => {
               setRechargeModalOpen(true)
               setCurrentRow(record);
+              if(rechargeRef.current) {
+                rechargeRef.current.reload();
+              }
             }}
-            key="subscribeAlert"
+            key="cz"
           >
             充值
           </a>,
@@ -331,6 +339,9 @@ const TableList: React.FC = () => {
             onClick={() => {
               setSettingsModalOpen(true)
               setCurrentRow(record);
+              if(billingRef.current) {
+                billingRef.current.reload()
+              }
             }}
             key="settingsModalOpenAlert"
           >
@@ -344,7 +355,7 @@ const TableList: React.FC = () => {
                 handleExamineModalOpen(true)
                 setCurrentRow(record);
               }}
-              key="subscribeAlert"
+              key="sh"
             >
               审核
             </a>
@@ -418,9 +429,9 @@ const TableList: React.FC = () => {
 
   ];
 
-  const handleDownLoadFile = () => {
+  const handleDownLoadFile = (params = {}) => {
     console.log('downloadFileParams', downloadFileParams);
-    exportFile(downLoadUrl, downloadFileParams);
+    exportFile(downLoadUrl, {...downloadFileParams, ...params});
   };
 
   const onExamineChange = (value) => {
@@ -587,8 +598,8 @@ const TableList: React.FC = () => {
           console.log('onFinish2', payload);
           delete payload?.allArea
           if (businessTitle === '新建企业') {
-            const success = await handleAdd(payload as API.RuleListItem);
-            if (success) {
+            const result = await handleAdd(payload as API.RuleListItem);
+            if (result.code == 200) {
               handleModalOpen(false);
               if (actionRef.current) {
                 modalFormRef.current?.resetFields();
@@ -596,8 +607,8 @@ const TableList: React.FC = () => {
               }
             }
           } else {
-            const success = await handleEdit(payload as API.RuleListItem);
-            if (success) {
+            const result = await handleEdit(payload as API.RuleListItem);
+            if (result.code == 200) {
               handleModalOpen(false);
               if (actionRef.current) {
                 modalFormRef.current?.resetFields();
@@ -678,12 +689,6 @@ const TableList: React.FC = () => {
           placeholder="请输入手机号码"
         />
         <ProFormText
-          // rules={[
-          //   {
-          //     required: true,
-          //     message: '请输入职位',
-          //   },
-          // ]}
           width="md"
           name="job"
           label="职位"
@@ -693,11 +698,11 @@ const TableList: React.FC = () => {
           businessTitle === '新建企业' ?
             <ProFormText
               rules={[
-                { type: 'string', min: 6, max: 18 }
-                // {
-                //   required: true,
-                //   message: '请设置初始登录密码',
-                // },
+                { type: 'string', min: 6, max: 18 },
+                {
+                  required: true,
+                  message: '请设置初始登录密码',
+                },
               ]}
               width="md"
               name="password"
@@ -706,23 +711,23 @@ const TableList: React.FC = () => {
             /> : null
         }
         <ProFormText
-          // rules={[
-          //   {
-          //     required: true,
-          //     message: '规则名称为必填项',
-          //   },
-          // ]}
+          rules={[
+            {
+              required: true,
+              message: '请设置单条短信计费',
+            },
+          ]}
           width="md"
           name="cost"
           label="单条短信计费"
-          placeholder="单条短信计费"
+          placeholder="单条短信计费(元/条)"
         />
       </ModalForm>
       {/* 企业充值 */}
       <Modal width={1000} footer="" title="企业充值" open={isRechargeModalOpen} onCancel={() => setRechargeModalOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <Form.Item
-            label="公司地址"
+            label="企业"
             name="allArea"
             style={{ marginRight: 30 }}
           >
@@ -740,7 +745,7 @@ const TableList: React.FC = () => {
               min="0"
               max="1000"
               step="1"
-              suffix="RMB1"
+              suffix="RMB"
               controls={false}
               onChange={onMoneyChange}
             />
@@ -781,22 +786,20 @@ const TableList: React.FC = () => {
               type="primary"
               key="primary"
               onClick={() => {
-                setCurrentRow({})
-                if (modalFormRef.current) {
-                  editBusinessTitle('新建企业')
-                  modalFormRef.current.resetFields()
-                }
-                handleModalOpen(true);
+                businessRechargeExport('/api/v1/admin/platform/business/recharge/log/export', {
+                  businessId:currentRow.businessId
+                })
               }}
             >
-              <PlusOutlined /> 新建
+              <VerticalAlignBottomOutlined /> 导出
             </Button>,
           ]}
           request={(params) => {
             console.log('paramsparams', params);
             let payload = {
               ...params,
-              pageSize: 10
+              pageSize: 10,
+              businessId:currentRow.businessId
             }
             return getRechargeList(payload)
           }}
@@ -805,7 +808,10 @@ const TableList: React.FC = () => {
         />
       </Modal>
       {/* 计费设置 */}
-      <Modal width={1000} footer="" title="计费设置" open={isSettingsModalOpen} onCancel={() => setSettingsModalOpen(false)}>
+      <Modal width={1000} footer="" title="计费设置" open={isSettingsModalOpen} onCancel={() => {
+        setSmsBilling(null)
+        setSettingsModalOpen(false)
+      }}>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <Form.Item
             label="企业名称"
@@ -821,7 +827,6 @@ const TableList: React.FC = () => {
           >
             <InputNumber
               style={{ width: 200 }}
-              // defaultValue="0"
               value={smsBilling}
               min="0"
               max="1000"
@@ -840,15 +845,10 @@ const TableList: React.FC = () => {
                 businessId: currentRow.businessId,
                 cost: smsBilling
               }
-              console.log('充值金额', payload);
               delete payload.method
-              setSmsBilling(0)
+              setSmsBilling(null)
               let result = await handleUpdateCost(payload)
-              console.log('计费设置 金额', smsBilling);
-
-              console.log('result', result);
               if (billingRef.current) {
-                setSmsBilling(0)
                 billingRef.current.reload();
               }
             }}
@@ -867,7 +867,8 @@ const TableList: React.FC = () => {
             console.log('paramsparams', params);
             let payload = {
               ...params,
-              pageSize: 10
+              pageSize: 10,
+              businessId:currentRow.businessId
             }
             return getCostList(payload)
           }}
@@ -891,15 +892,11 @@ const TableList: React.FC = () => {
           }
         }}
         request={async () => {
-          console.log('currentRow123', currentRow);
           setBusinessLicense(currentRow.businessLicense)
           setPowerOfAttorney(currentRow.powerOfAttorney)
           return {
             ...currentRow,
             allArea: `${currentRow.province}${currentRow.city}${currentRow.area}${currentRow.address}`
-            // name: data.name,
-            // allArea: [data.province, data.city, data.area],
-            // address: data.address,
           };
         }}
         submitter={{
@@ -914,7 +911,6 @@ const TableList: React.FC = () => {
           },
         }}
         onFinish={async (value) => {
-          console.log('onFinish1111', value);
           let payload = {
             businessId: currentRow.businessId,
             status: value.examine,
@@ -922,7 +918,6 @@ const TableList: React.FC = () => {
           if(value.examine == 3) {
             payload['remark'] = value.remark
           }
-          console.log('提交审核',payload);
           
           const result = await handleExamine(payload as API.RuleListItem);
           if (result) {
@@ -931,10 +926,10 @@ const TableList: React.FC = () => {
             }else {
               message.error(result.msg)
             }
-            handleExamineModalOpen(false);
             if (actionRef.current) {
               actionRef.current.reload();
             }
+            handleExamineModalOpen(false);
           }
         }}
       >
@@ -1107,7 +1102,7 @@ const TableList: React.FC = () => {
       >
         <ProDescriptions
           actionRef={actionDesRef}
-          title="高级定义列表 request"
+          title="备注"
           column={1}
           request={async () => {
             return getLogList(currentRow?.businessId)
@@ -1133,19 +1128,6 @@ const TableList: React.FC = () => {
             <Button key="rest">重置</Button>
           </ProDescriptions.Item> */}
         </ProDescriptions>
-        {/* {currentRow?.name && (
-          <ProDescriptions<API.RuleListItem>
-            column={2}
-            title={currentRow?.name}
-            request={async () => ({
-              data: currentRow || {},
-            })}
-            params={{
-              id: currentRow?.name,
-            }}
-            columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
-          />
-        )} */}
       </Drawer>
     </PageContainer>
   );

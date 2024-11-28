@@ -212,7 +212,6 @@ export async function getList(
   console.log('列表翻页接口', params, options);
   let payload = {
     ...params,
-    pageNum: params.current
   }
   delete payload.current
 
@@ -580,6 +579,44 @@ function toQueryString(obj) {
       return `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`;
     })
     .join('&');
+}
+
+
+export async function businessRechargeExport(url: string, options?: { [key: string]: any }) {
+  let _params = toQueryString(options);
+  let _url = url;
+  if (Object.keys(options).length) {
+    _url += '?' + _params;
+  }
+  return request<{
+    data: API.CurrentUser;
+  }>(_url, {
+    method: 'GET',
+    responseType: 'blob',
+    ...(options || {}),
+  })
+    .then((response) => {
+      console.log('导出文件结果', response);
+      // 创建一个指向Blob的URL
+      const blobUrl = URL.createObjectURL(response);
+
+      // 创建一个临时的下载链接
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = '导出数据.xlsx'; // 设置下载文件名
+
+      // 触发下载
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+
+      // 清理临时元素和URL对象
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch((error) => {
+      // 处理错误
+      console.error('下载失败:', error);
+    });
 }
 
 

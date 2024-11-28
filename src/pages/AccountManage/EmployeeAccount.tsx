@@ -250,7 +250,7 @@ const TableList: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<API.RuleListItem, API.PageParams>
-        headerTitle={'查询表格'}
+        // headerTitle={'查询表格'}
         actionRef={actionRef}
         rowKey="key"
         search={{
@@ -272,13 +272,16 @@ const TableList: React.FC = () => {
             <PlusOutlined /> 创建账号
           </Button>,
         ]}
-        request={getEmployeeList}
-        columns={columns}
-        rowSelection={{
-          onChange: (_, selectedRows) => {
-            setSelectedRows(selectedRows);
-          },
+        request={(params) => {
+          let payload = {
+            ...params,
+            pageNum: params.current,
+          };
+          delete payload.current;
+          return getEmployeeList(payload);
         }}
+        columns={columns}
+        rowSelection={false}
       />
       {selectedRowsState?.length > 0 && (
         <FooterToolbar
@@ -391,17 +394,17 @@ const TableList: React.FC = () => {
           name="phoneNumber"
         />
         <ProFormText
+          label="职位"
+          width="md"
+          name="job"
+        />
+        <ProFormSelect
           rules={[
             {
               required: true,
               message: '规则名称为必填项',
             },
           ]}
-          label="职位"
-          width="md"
-          name="job"
-        />
-        <ProFormSelect
           name="roleIdList"
           width="md"
           label="角色"

@@ -89,25 +89,10 @@ const formItemLayout = {
 }
 const TableList: React.FC = () => {
     const modalFormRef = useRef<ProFormInstance>();
-    /**
-     * @en-US Pop-up window of new window
-     * @zh-CN 新建窗口的弹窗
-     *  */
     const [createModalOpen, handleModalOpen] = useState<boolean>(false);
-    /**
-     * @en-US The pop-up window of the distribution update window
-     * @zh-CN 分布更新窗口的弹窗
-     * */
-    const [updateModalOpen, handleUpdateModalOpen] = useState<boolean>(false);
-    const [showDetail, setShowDetail] = useState<boolean>(false);
     const actionRef = useRef<ActionType>();
     const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
     const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
-
-    /**
-     * @en-US International configuration
-     * @zh-CN 国际化配置
-     * */
 
     const columns: ProColumns<API.RuleListItem>[] = [
         {
@@ -256,25 +241,22 @@ const TableList: React.FC = () => {
     return (
         <PageContainer>
             <ProTable<API.RuleListItem, API.PageParams>
-                headerTitle={'查询表格'}
+                // headerTitle={}
                 actionRef={actionRef}
                 rowKey="key"
                 search={{
                     labelWidth: 120,
                 }}
                 options={false}
-                toolBarRender={() => [
-                    // <Button
-                    //     type="primary"
-                    //     key="primary"
-                    //     onClick={() => {
-                    //         handleModalOpen(true);
-                    //     }}
-                    // >
-                    //     <PlusOutlined /> 新建
-                    // </Button>,
-                ]}
-                request={getAccountList}
+                toolBarRender={() => []}
+                request={(params) => {
+                    let payload = {
+                      ...params,
+                      pageNum: params.current,
+                    };
+                    delete payload.current;
+                    return getAccountList(payload);
+                  }}
                 columns={columns}
                 rowSelection={{
                     onChange: (_, selectedRows) => {
@@ -333,7 +315,6 @@ const TableList: React.FC = () => {
                     },
                 }}
                 onFinish={async (value) => {
-                    console.log('handleAccountEdit', value);
                     let payload = {
                         ...value,
                         userId: currentRow?.userId
@@ -397,50 +378,6 @@ const TableList: React.FC = () => {
                     name="phoneNumber"
                 />
             </ModalForm>
-            <UpdateForm
-                onSubmit={async (value) => {
-                    const success = await handleUpdate(value);
-                    if (success) {
-                        handleUpdateModalOpen(false);
-                        setCurrentRow(undefined);
-                        if (actionRef.current) {
-                            actionRef.current.reload();
-                        }
-                    }
-                }}
-                onCancel={() => {
-                    handleUpdateModalOpen(false);
-                    if (!showDetail) {
-                        setCurrentRow(undefined);
-                    }
-                }}
-                updateModalOpen={updateModalOpen}
-                values={currentRow || {}}
-            />
-
-            <Drawer
-                width={600}
-                open={showDetail}
-                onClose={() => {
-                    setCurrentRow(undefined);
-                    setShowDetail(false);
-                }}
-                closable={false}
-            >
-                {currentRow?.name && (
-                    <ProDescriptions<API.RuleListItem>
-                        column={2}
-                        title={currentRow?.name}
-                        request={async () => ({
-                            data: currentRow || {},
-                        })}
-                        params={{
-                            id: currentRow?.name,
-                        }}
-                        columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
-                    />
-                )}
-            </Drawer>
         </PageContainer>
     );
 };
