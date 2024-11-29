@@ -1,65 +1,15 @@
-import { addRule, removeRule, rule, updateRule, getAccountList, handleAccountEdit, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
-import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns, ProDescriptionsItemProps, ProFormInstance } from '@ant-design/pro-components';
+import {  removeRule, rule, getAccountList, handleAccountEdit, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
+import type { ActionType, ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import {
     FooterToolbar,
     ModalForm,
     PageContainer,
-    ProDescriptions,
     ProFormText,
-    ProFormTextArea,
     ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button, Drawer, Input, message, Col, Row, Space, Form, Popconfirm } from 'antd';
+import { Button,  Input, message, Col, Row, Space, Form, Popconfirm } from 'antd';
 import React, { useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
-
-/**
- * @en-US Add node
- * @zh-CN 添加节点
- * @param fields
- */
-const handleAdd = async (fields: API.RuleListItem) => {
-    const hide = message.loading('正在添加');
-    try {
-        await addRule({
-            ...fields,
-        });
-        hide();
-        message.success('Added successfully');
-        return true;
-    } catch (error) {
-        hide();
-        message.error('Adding failed, please try again!');
-        return false;
-    }
-};
-
-/**
- * @en-US Update node
- * @zh-CN 更新节点
- *
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-    const hide = message.loading('Configuring');
-    try {
-        await updateRule({
-            name: fields.name,
-            desc: fields.desc,
-            key: fields.key,
-        });
-        hide();
-        message.success('Configuration is successful');
-        return true;
-    } catch (error) {
-        hide();
-        message.error('Configuration failed, please try again!');
-        return false;
-    }
-};
 
 /**
  *  Delete node
@@ -154,7 +104,6 @@ const TableList: React.FC = () => {
         },
         {
             title: '账号创建时间',
-            sorter: true,
             dataIndex: 'createTime',
             valueType: 'dateTime',
             renderFormItem: (item, { defaultRender, ...rest }, form) => {

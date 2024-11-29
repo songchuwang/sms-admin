@@ -33,16 +33,6 @@ export async function login(body: API.LoginParams, options?: { [key: string]: an
   });
 }
 
-// export async function login(body: API.LoginParams, options?: { [key: string]: any }) {
-//   return request<API.LoginResult>('/api/login/account', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     data: body,
-//     ...(options || {}),
-//   });
-// }
 
 /** 此处后端没有提供注释 GET /api/notices */
 export async function getNotices(options?: { [key: string]: any }) {
@@ -59,14 +49,10 @@ export async function getLogList(
   },
   options?: { [key: string]: any },
 ) {
-  console.log('列表翻页接口', params);
-  let payload = {
-    businessId: params
-  }
   return request<API.RuleList>('/api/v1/admin/platform/business/check/log/list', {
     method: 'GET',
     params: {
-      ...payload,
+      ...params,
     },
     ...(options || {}),
   });
@@ -209,12 +195,10 @@ export async function getList(
   },
   options?: { [key: string]: any },
 ) {
-  console.log('列表翻页接口', params, options);
   let payload = {
     ...params,
   }
   delete payload.current
-
   // 这里需要返回一个 Promise,在返回之前你可以进行数据转化
   // 如果需要转化参数可以在这里进行修改
   const msg = await request<API.RuleList>('/api/v1/admin/platform/business/page', {
@@ -224,29 +208,13 @@ export async function getList(
       ...(payload || {}),
     },
   })
-  console.log('request result', msg);
   return {
     data: msg.list,
     success: msg.success,
     total: msg.total
   }
 
-  //   return {
-  //     data: msg.result,
-  //     // success 请返回 true，
-  //     // 不然 table 会停止解析数据，即使有数据
-  //     success: boolean,
-  //     // 不传会使用 data 的长度，如果是分页一定要传
-  //     total: number,
-  //   };
-
-  // return request<API.RuleList>('/api/v1/admin/platform/business/page', {
-  //   method: 'POST',
-  //   data: {
-  //     method: 'post',
-  //     ...(payload || {}),
-  //   },
-  // });
+  
 }
 
 /** 获取规则列表 GET /api/rule */

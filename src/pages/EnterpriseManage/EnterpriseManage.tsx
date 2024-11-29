@@ -1,11 +1,10 @@
-import { addRule, removeRule,exportFile, removeBusiness,handleExamine, getList, getRechargeList,businessRechargeExport, getCostList, updateRule, handleActivateService, handleEnableService, addBusiness, handleRechargeMoney, handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
+import { exportFile, removeBusiness,handleExamine, getList, getRechargeList,businessRechargeExport, getCostList, updateRule, handleActivateService, handleEnableService, addBusiness, handleRechargeMoney, handleUpdateCost, editBusiness, getLogList } from '@/services/ant-design-pro/api';
 import { PlusOutlined, VerticalAlignBottomOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns, ProDescriptionsActionType, ProFormInstance } from '@ant-design/pro-components';
+import type { ActionType, ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import {
   FooterToolbar,
   ModalForm,
   PageContainer,
-  ProDescriptions,
   ProForm,
   ProFormRadio,
   ProFormText,
@@ -15,8 +14,6 @@ import {
 import '@umijs/max';
 import { Button, Drawer, Input, InputNumber, message, Col, Row, Space, Cascader, Form, Popconfirm, Modal } from 'antd';
 import React, { useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
 import { areaList } from '../../../public/area';
 import type { CascaderProps } from 'antd';
 import moment from 'moment';
@@ -75,30 +72,6 @@ const handleEdit = async (fields: API.RuleListItem) => {
 const downLoadUrl = '/api/v1/admin/platform/business/export';
 
 /**
- * @en-US Update node
- * @zh-CN 更新节点
- *
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('Configuring');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-    message.success('Configuration is successful');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Configuration failed, please try again!');
-    return false;
-  }
-};
-
-/**
  *  Delete node
  * @zh-CN 删除节点
  *
@@ -121,34 +94,23 @@ const handleRemove = async (selectedRows: API.RuleListItem) => {
   }
 };
 
-
 const TableList: React.FC = () => {
   const modalFormRef = useRef<ProFormInstance>();
-  const actionDesRef = useRef<ProDescriptionsActionType>();
   const rechargeRef = useRef<ActionType>();
   const billingRef = useRef<ActionType>();
-  /**
-   * @en-US Pop-up window of new window
-   * @zh-CN 新建窗口的弹窗
-   *  */
+  const bzRef = useRef();
+
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
   // 充值记录弹窗
   const [isRechargeModalOpen, setRechargeModalOpen] = useState(false); // 充值弹窗
   // 计费设置弹窗
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false); // 充值弹窗
 
-  // const [examineModalOpen, setExamineModalOpen] = useState(false); // 充值弹窗
-
   const [businessTitle, editBusinessTitle] = useState<string>('新建企业');
 
   const [examineModalOpen, handleExamineModalOpen] = useState<boolean>(false);
 
   const [notesModalOpen, handleNotesModalOpen] = useState<boolean>(false);
-  /**
-   * @en-US The pop-up window of the distribution update window
-   * @zh-CN 分布更新窗口的弹窗
-   * */
-  const [updateModalOpen, handleUpdateModalOpen] = useState<boolean>(false);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
@@ -166,33 +128,19 @@ const TableList: React.FC = () => {
   const [downloadFileParams, saveDownloadFileParams] = useState({});
 
   const onMoneyChange = (value) => {
-    console.log('onMoneyChange', value);
     setRechargeAmount(value)
   };
 
   const onCostChange = (value) => {
-    console.log('onCostChange', value);
     setSmsBilling(value)
   };
 
   const columns: ProColumns<API.RuleListItem>[] = [
-    // {
-    //   title: '企业编号',
-    //   dataIndex: 'businessId',
-    //   tip: 'The rule name is the unique key',
-    // },
     {
       title: '企业名称',
       dataIndex: 'name',
       valueType: 'textarea',
       search: false,
-      // render: (dom, entity, other) => {
-      //   return (
-      //     <a>
-      //       {dom}
-      //     </a>
-      //   );
-      // },
     },
     {
       title: '公司地址',
@@ -316,8 +264,13 @@ const TableList: React.FC = () => {
           </Popconfirm>,
           <a
             onClick={() => {
-              setShowDetail(true);
               setCurrentRow(record);
+              setTimeout(()=>{
+                setShowDetail(true);
+                if(bzRef.current) {
+                  bzRef.current.reload()
+                }
+              },200)
             }}
             key="bz"
           >
@@ -367,7 +320,6 @@ const TableList: React.FC = () => {
               let result = await handleEnableService({
                 businessId: record.businessId
               })
-              console.log('result11112222', result,);
               if (actionRef.current) {
                 actionRef.current.reload();
               }
@@ -396,6 +348,51 @@ const TableList: React.FC = () => {
     },
   ];
 
+  
+  const bzColumns: ProColumns<API.RuleListItem>[] = [
+    {
+      title: '状态',
+      dataIndex: 'status',
+      hideInForm: true,
+      valueEnum: {
+        2: {
+          text: '审核通过',
+          status: 'Success',
+        },
+        3: {
+          text: '认证不通过',
+          status: 'Error',
+        },
+      },
+    },
+    {
+      title: '操作账号',
+      dataIndex: 'createBy',
+      valueType: 'textarea',
+      search: false,
+    },
+    {
+      title: '操作时间',
+      dataIndex: 'createTime',
+      valueType: 'dateRange',
+      search: false,
+      search: {
+        transform: (value) => {
+          return { startTime: new Date(value[0]).getTime(), endTime: new Date(value[1]).getTime() };
+        },
+      },
+      render: (_, record) => {
+        return <span>{moment(record.createTime).format('YYYY-MM-DD HH:mm:ss')}</span>;
+      },
+    },
+    {
+      title: '备注',
+      dataIndex: 'remark',
+      valueType: 'textarea',
+      search: false,
+    },
+  ];
+
   const billingColumns = [
     {
       title: '修改内容',
@@ -411,7 +408,6 @@ const TableList: React.FC = () => {
     },
     {
       title: '修改时间',
-      sorter: true,
       dataIndex: 'date',
       valueType: 'dateTime',
       search: false,
@@ -430,13 +426,8 @@ const TableList: React.FC = () => {
   ];
 
   const handleDownLoadFile = (params = {}) => {
-    console.log('downloadFileParams', downloadFileParams);
     exportFile(downLoadUrl, {...downloadFileParams, ...params});
   };
-
-  const onExamineChange = (value) => {
-    console.log('onExamineChange', value);
-  }
 
   const rechargeColumns: ProColumns<API.RuleListItem>[] = [
     {
@@ -456,7 +447,6 @@ const TableList: React.FC = () => {
     },
     {
       title: '充值时间',
-      sorter: true,
       dataIndex: 'date',
       valueType: 'dateTime',
       search: false,
@@ -490,7 +480,7 @@ const TableList: React.FC = () => {
       <ProTable<API.RuleListItem, API.PageParams>
         headerTitle={'查询表格'}
         actionRef={actionRef}
-        options={false}
+        // options={false}
         rowKey="key"
         search={{
           labelWidth: 120,
@@ -587,7 +577,6 @@ const TableList: React.FC = () => {
           },
         }}
         onFinish={async (value) => {
-          console.log('onFinish', value);
           const payload = {
             ...value,
             province: value?.allArea[0],
@@ -595,25 +584,24 @@ const TableList: React.FC = () => {
             area: value?.allArea[2],
             businessId: currentRow?.businessId
           }
-          console.log('onFinish2', payload);
           delete payload?.allArea
           if (businessTitle === '新建企业') {
             const result = await handleAdd(payload as API.RuleListItem);
             if (result.code == 200) {
-              handleModalOpen(false);
               if (actionRef.current) {
                 modalFormRef.current?.resetFields();
                 actionRef.current.reload();
               }
+              handleModalOpen(false);
             }
           } else {
             const result = await handleEdit(payload as API.RuleListItem);
             if (result.code == 200) {
-              handleModalOpen(false);
               if (actionRef.current) {
                 modalFormRef.current?.resetFields();
                 actionRef.current.reload();
               }
+              handleModalOpen(false);
             }
           }
 
@@ -759,16 +747,13 @@ const TableList: React.FC = () => {
                 businessId: currentRow.businessId,
                 rechargeMoney: rechargeAmount
               }
-              console.log('充值金额', payload);
               delete payload.method
               setRechargeAmount(0)
               let result = await handleRechargeMoney(payload)
-              console.log('rechargeMoney 金额', rechargeAmount);
-
-              console.log('result', result);
               if (rechargeRef.current) {
                 setRechargeAmount(0)
                 rechargeRef.current.reload();
+                actionRef.current.reload();
               }
             }}
           >
@@ -795,7 +780,6 @@ const TableList: React.FC = () => {
             </Button>,
           ]}
           request={(params) => {
-            console.log('paramsparams', params);
             let payload = {
               ...params,
               pageSize: 10,
@@ -850,6 +834,7 @@ const TableList: React.FC = () => {
               let result = await handleUpdateCost(payload)
               if (billingRef.current) {
                 billingRef.current.reload();
+                actionRef.current.reload();
               }
             }}
           >
@@ -864,7 +849,6 @@ const TableList: React.FC = () => {
           search={false}
           toolBarRender={() => []}
           request={(params) => {
-            console.log('paramsparams', params);
             let payload = {
               ...params,
               pageSize: 10,
@@ -884,7 +868,6 @@ const TableList: React.FC = () => {
         layout={'horizontal'}
         onOpenChange={handleExamineModalOpen}
         onValuesChange={(changeValues) => {
-          console.log(changeValues)
           if (changeValues.examine == '2') {
             showReason(false)
           } else if (changeValues.examine == '3') {
@@ -970,18 +953,18 @@ const TableList: React.FC = () => {
           name="account"
         />
         <Form.Item
-          label="职业执照"
+          label="营业执照"
           name="allArea"
           rules={[{ required: true, message: '请选择公司地址' }]}
         >
-          {businessLicense ? <img onClick={() => window.open(currentRow.businessLicense)} src={businessLicense} alt="avatar" style={{ display: 'inline-block', width: '100%', maxWidth: '200px', height: 'auto', cursor: 'pointer' }} /> : null}
+          {businessLicense ? <img onClick={() => window.open(currentRow.businessLicense,'_blank')} src={businessLicense} alt="营业执照" style={{ display: 'inline-block', width: '100%', maxWidth: '200px', height: 'auto', cursor: 'pointer' }} /> : null}
         </Form.Item>
         <Form.Item
           label="授权书"
           name="allArea"
           rules={[{ required: true, message: '请选择公司地址' }]}
         >
-          <Button onClick={() => window.open(currentRow.powerOfAttorney)} type="link">短信平台服务申请授权书.docx</Button>
+          <Button onClick={() => window.open(currentRow.powerOfAttorney,'_blank')} type="link">短信平台服务申请授权书.docx</Button>
         </Form.Item>
         <ProFormRadio.Group
           name="examine"
@@ -1070,26 +1053,6 @@ const TableList: React.FC = () => {
           ]}
         />
       </ModalForm>
-      <UpdateForm
-        onSubmit={async (value) => {
-          const success = await handleUpdate(value);
-          if (success) {
-            handleUpdateModalOpen(false);
-            setCurrentRow(undefined);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }
-        }}
-        onCancel={() => {
-          handleUpdateModalOpen(false);
-          if (!showDetail) {
-            setCurrentRow(undefined);
-          }
-        }}
-        updateModalOpen={updateModalOpen}
-        values={currentRow || {}}
-      />
 
       <Drawer
         width={600}
@@ -1100,34 +1063,26 @@ const TableList: React.FC = () => {
         }}
         closable={false}
       >
-        <ProDescriptions
-          actionRef={actionDesRef}
-          title="备注"
-          column={1}
+        <ProTable<API.RuleListItem, API.PageParams>
+          headerTitle={'备注记录'}
+          actionRef={bzRef}
+          rowKey="key"
+          options={false}
+          search={false}
           request={async () => {
-            return getLogList(currentRow?.businessId)
+            let payload = {
+              businessId:currentRow?.businessId
+            }
+            let result = await getLogList(payload)
+            return {
+              data: result.list,
+              success: result.success,
+              total: result.list.length
+            }
           }}
-        // extra={<Button type="link">修改</Button>}
-        >
-          <ProDescriptions.Item dataIndex="id" label="审核人" />
-          <ProDescriptions.Item dataIndex="date" label="日期" valueType="date" />
-          <ProDescriptions.Item dataIndex="reason" label="审核未通过原因" />
-          <ProDescriptions.Item dataIndex="date" label="短信发送时间" />
-          <ProDescriptions.Item dataIndex="reason2" label="发送失败原因" />
-          <ProDescriptions.Item label="money" dataIndex="money" valueType="money" />
-          {/* <ProDescriptions.Item label="文本" valueType="option">
-            <Button
-              type="primary"
-              onClick={() => {
-                actionRef.current?.reload();
-              }}
-              key="reload"
-            >
-              刷新
-            </Button>
-            <Button key="rest">重置</Button>
-          </ProDescriptions.Item> */}
-        </ProDescriptions>
+          columns={bzColumns}
+          rowSelection={false}
+        />
       </Drawer>
     </PageContainer>
   );

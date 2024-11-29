@@ -160,7 +160,6 @@ const TableList: React.FC = () => {
     },
     {
       title: '创建时间',
-      sorter: true,
       dataIndex: 'updatedAt',
       valueType: 'dateTime',
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
@@ -182,7 +181,6 @@ const TableList: React.FC = () => {
     {
       title: '服务调用次数',
       dataIndex: 'callNo',
-      sorter: true,
       hideInForm: true,
       renderText: (val: string) => `${val}${'万'}`,
       search: false,

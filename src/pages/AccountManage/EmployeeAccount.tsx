@@ -162,7 +162,6 @@ const TableList: React.FC = () => {
     },
     {
       title: '账号创建时间',
-      sorter: true,
       dataIndex: 'createTime',
       valueType: 'dateTime',
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
