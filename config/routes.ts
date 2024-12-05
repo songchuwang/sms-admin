@@ -9,7 +9,7 @@ export default [
     path: '/enterpriseManage',
     name: '企业管理',
     icon: 'book',
-    access: 'platform:business:manager',
+    access: 'platform:sys:business',
     routes: [
       { path: '/enterpriseManage/enterpriseManage',access: 'platform:business:page', name: '企业管理', component: './EnterpriseManage/EnterpriseManage' },
       { path: '/enterpriseManage/accountManage',access: 'platform:business:user:manager', name: '账户管理', component: './EnterpriseManage/AccountManage' },

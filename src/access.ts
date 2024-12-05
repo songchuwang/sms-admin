@@ -9,6 +9,8 @@ export default function access(initialState: { currentUser?: API.CurrentUser } |
   permissions.forEach((permItem) => {
     perms[permItem] = permItem;
   });
+  console.log('permspermsperms',perms);
+  
   return {
     canAdmin: currentUser && currentUser.access === 'admin',
     ...perms,

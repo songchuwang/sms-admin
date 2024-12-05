@@ -92,6 +92,8 @@ const formItemLayout = {
 const TableList: React.FC = () => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>([]);
+  const [halfCheckedKeys, setHalfCheckedKeys] = useState<React.Key[]>([]);
+  
   // const [checkedMenuList, setCheckedMenuList] = useState<React.Key[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [treeData, setTreeData] = useState([])
@@ -108,7 +110,8 @@ const TableList: React.FC = () => {
 
   const onCheck: TreeProps['onCheck'] = (checkedKeys, e) => {
     console.log('onCheck', checkedKeys, e);
-    setCheckedKeys(checkedKeys as React.Key[]);
+    setHalfCheckedKeys(e.halfCheckedKeys)
+    setCheckedKeys(checkedKeys);
     // setCheckedMenuList([...checkedKeys, ...e.halfCheckedKeys])
   };
 
@@ -236,37 +239,6 @@ const TableList: React.FC = () => {
         columns={columns}
         rowSelection={false}
       />
-      {selectedRowsState?.length > 0 && (
-        <FooterToolbar
-          extra={
-            <div>
-              已选择{' '}
-              <a
-                style={{
-                  fontWeight: 600,
-                }}
-              >
-                {selectedRowsState.length}
-              </a>{' '}
-              项 &nbsp;&nbsp;
-              <span>
-                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
-              </span>
-            </div>
-          }
-        >
-          <Button
-            onClick={async () => {
-              await handleRemove(selectedRowsState);
-              setSelectedRows([]);
-              actionRef.current?.reloadAndRest?.();
-            }}
-          >
-            批量删除
-          </Button>
-          <Button type="primary">批量审批</Button>
-        </FooterToolbar>
-      )}
       <ModalForm
         {...formItemLayout}
         title={modalTitle}
@@ -290,7 +262,7 @@ const TableList: React.FC = () => {
           console.log('onFinish', value);
           let payload = {
             ...value,
-            menuIdList: checkedKeys
+            menuIdList: [...checkedKeys,...halfCheckedKeys]
           }
           let result = {}
           if (modalTitle === '编辑角色') {
@@ -307,8 +279,6 @@ const TableList: React.FC = () => {
             if (actionRef.current) {
               actionRef.current.reload();
             }
-          } else {
-            message.error(result.msg)
           }
 
         }}

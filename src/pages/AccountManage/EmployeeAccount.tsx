@@ -18,27 +18,6 @@ import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 
 /**
- * @en-US Add node
- * @zh-CN 添加节点
- * @param fields
- */
-const handleAdd = async (fields: API.RuleListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({
-      ...fields,
-    });
-    hide();
-    message.success('Added successfully');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Adding failed, please try again!');
-    return false;
-  }
-};
-
-/**
  * @en-US Update node
  * @zh-CN 更新节点
  *
@@ -90,30 +69,28 @@ const formItemLayout = {
 }
 const TableList: React.FC = () => {
   const modalFormRef = useRef<ProFormInstance>();
-  /**
-   * @en-US Pop-up window of new window
-   * @zh-CN 新建窗口的弹窗
-   *  */
+  
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
-  /**
-   * @en-US The pop-up window of the distribution update window
-   * @zh-CN 分布更新窗口的弹窗
-   * */
-  const [updateModalOpen, handleUpdateModalOpen] = useState<boolean>(false);
-  const [showDetail, setShowDetail] = useState<boolean>(false);
+  
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
-  const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
-  const [roles, setRoles] = useState({});
+  const [roles, setRoles] = useState([]);
   const [modalTitle, setModalTitle] = useState('新建账户')
 
   useEffect(() => {
     getPlatformRoleList().then(res => {
-      let valueEnum = {}
+      // let valueEnum = {}
+      let arr = []
       res.data.map(item => {
-        valueEnum[item.roleId] = item.roleName
+        arr.push({
+          label: item.roleName,
+          value:item.roleId
+        })
       })
-      setRoles(valueEnum)
+
+      console.log('valueEnum123',arr);
+      
+      setRoles(arr)
     })
   }, [])
 
@@ -190,7 +167,11 @@ const TableList: React.FC = () => {
               setModalTitle('编辑账户')
               setTimeout(() => {
                 if (modalFormRef.current) {
-                  modalFormRef.current.setFieldsValue(record);
+                  let roleIdList = record.roles[0].roleId
+                  modalFormRef.current.setFieldsValue({
+                    ...record,
+                    roleIdList:roleIdList
+                  })
                   setCurrentRow(record);
                 }
               })
@@ -198,7 +179,6 @@ const TableList: React.FC = () => {
           >
             编辑
           </a>
-
         ]
         if (record.accountType != 1) {
           renderArr.push(
@@ -282,37 +262,6 @@ const TableList: React.FC = () => {
         columns={columns}
         rowSelection={false}
       />
-      {selectedRowsState?.length > 0 && (
-        <FooterToolbar
-          extra={
-            <div>
-              已选择{' '}
-              <a
-                style={{
-                  fontWeight: 600,
-                }}
-              >
-                {selectedRowsState.length}
-              </a>{' '}
-              项 &nbsp;&nbsp;
-              <span>
-                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
-              </span>
-            </div>
-          }
-        >
-          <Button
-            onClick={async () => {
-              await handleRemove(selectedRowsState);
-              setSelectedRows([]);
-              actionRef.current?.reloadAndRest?.();
-            }}
-          >
-            批量删除
-          </Button>
-          <Button type="primary">批量审批</Button>
-        </FooterToolbar>
-      )}
       <ModalForm
         {...formItemLayout}
         title={modalTitle}
@@ -343,6 +292,7 @@ const TableList: React.FC = () => {
           if (modalTitle === '编辑账户') {
             result = await handleEmployeeUpdate({
               ...payload,
+              userId:currentRow.userId,
               roleId: currentRow?.roleId
             });
           } else {
@@ -354,8 +304,6 @@ const TableList: React.FC = () => {
             if (actionRef.current) {
               actionRef.current.reload();
             }
-          } else {
-            message.error(result.msg)
           }
         }}
       >
@@ -407,7 +355,8 @@ const TableList: React.FC = () => {
           name="roleIdList"
           width="md"
           label="角色"
-          valueEnum={roles}
+          options={roles}
+          // valueEnum={roles}
           initialValue={currentRow?.roleNames}
         />
         {
@@ -425,50 +374,6 @@ const TableList: React.FC = () => {
             /> : null
         }
       </ModalForm>
-      <UpdateForm
-        onSubmit={async (value) => {
-          const success = await handleUpdate(value);
-          if (success) {
-            handleUpdateModalOpen(false);
-            setCurrentRow(undefined);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }
-        }}
-        onCancel={() => {
-          handleUpdateModalOpen(false);
-          if (!showDetail) {
-            setCurrentRow(undefined);
-          }
-        }}
-        updateModalOpen={updateModalOpen}
-        values={currentRow || {}}
-      />
-
-      <Drawer
-        width={600}
-        open={showDetail}
-        onClose={() => {
-          setCurrentRow(undefined);
-          setShowDetail(false);
-        }}
-        closable={false}
-      >
-        {currentRow?.name && (
-          <ProDescriptions<API.RuleListItem>
-            column={2}
-            title={currentRow?.name}
-            request={async () => ({
-              data: currentRow || {},
-            })}
-            params={{
-              id: currentRow?.name,
-            }}
-            columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
-          />
-        )}
-      </Drawer>
     </PageContainer>
   );
 };

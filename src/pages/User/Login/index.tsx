@@ -114,7 +114,7 @@ const Login: React.FC = () => {
       message.success('密码更新成功');
       showForget(false);
     } else {
-      message.error(result.msg);
+      // message.error(result.msg);
     }
   };
 
@@ -146,7 +146,7 @@ const Login: React.FC = () => {
         history.push(urlParams.get('redirect') || '/');
         return;
       } else {
-        message.error(msg.msg);
+        // message.error(msg.msg);
       }
       console.log(msg);
       // 如果失败去设置用户错误信息

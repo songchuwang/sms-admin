@@ -5,7 +5,7 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RequestConfig,RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link,useModel } from '@umijs/max';
-import { Button } from 'antd';
+import { Button,message } from 'antd';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 const isDev = process.env.NODE_ENV === 'development';
@@ -149,9 +149,26 @@ const authHeaderInterceptor = async (url: string, options: RequestConfig) => {
   };
 };
 
+const demoResponseInterceptors = (response: Response) => {
+  if (response && response.data) {
+    if (response.data.code !== '200') {
+      if (response.data.code === '403') {
+        history.push(loginPath);
+      } else {
+        if(response.data && response.data.msg) {
+          message.error(response.data.msg);
+        }
+      }
+    }
+  }
+  return response;
+};
+
 export const request: RequestConfig = {
   // 新增自动添加AccessToken的请求前拦截器
   requestInterceptors: [authHeaderInterceptor],
+  // 请求后拦截
+  responseInterceptors: [demoResponseInterceptors],
 };
 // export const request = {
 //   ...errorConfig,

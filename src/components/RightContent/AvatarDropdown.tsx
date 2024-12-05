@@ -68,14 +68,15 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ menu, childre
 
   const onMenuClick = useCallback(
     (event: MenuInfo) => {
+      console.log('onMenuClick',event);
       const { key } = event;
-      if (key === 'logout') {
+      // if (key === 'logout') {
         flushSync(() => {
           setInitialState((s) => ({ ...s, currentUser: undefined }));
         });
         loginOut();
         return;
-      }
+      // }
       history.push(`/account/${key}`);
     },
     [setInitialState],
@@ -129,6 +130,10 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ menu, childre
   ];
 
   return (
+    // <div onClick={(e)=>onMenuClick(e)} style={{width:110,height:40,display:'flex',justifyContent:'center',alignItems:'center', boxSizing:'border-box',backgroundColor:'#fff', cursor:'pointer',borderRadius:8}}>
+    //   <LogoutOutlined />
+    //   <span style={{marginLeft:10}}>退出登录</span>
+    // </div>
     <HeaderDropdown
       menu={{
         selectedKeys: [],

@@ -207,43 +207,8 @@ const TableList: React.FC = () => {
                     return getAccountList(payload);
                   }}
                 columns={columns}
-                rowSelection={{
-                    onChange: (_, selectedRows) => {
-                        setSelectedRows(selectedRows);
-                    },
-                }}
+                rowSelection={false}
             />
-            {selectedRowsState?.length > 0 && (
-                <FooterToolbar
-                    extra={
-                        <div>
-                            已选择{' '}
-                            <a
-                                style={{
-                                    fontWeight: 600,
-                                }}
-                            >
-                                {selectedRowsState.length}
-                            </a>{' '}
-                            项 &nbsp;&nbsp;
-                            <span>
-                                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
-                            </span>
-                        </div>
-                    }
-                >
-                    <Button
-                        onClick={async () => {
-                            await handleRemove(selectedRowsState);
-                            setSelectedRows([]);
-                            actionRef.current?.reloadAndRest?.();
-                        }}
-                    >
-                        批量删除
-                    </Button>
-                    <Button type="primary">批量审批</Button>
-                </FooterToolbar>
-            )}
             <ModalForm
                 {...formItemLayout}
                 title={'账户编辑'}
@@ -277,9 +242,7 @@ const TableList: React.FC = () => {
                         if (actionRef.current) {
                             actionRef.current.reload();
                         }
-                    } else {
-                        message.error(result.msg)
-                    }
+                    } 
                 }}
             >
                 <ProFormText
