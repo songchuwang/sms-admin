@@ -1,100 +1,33 @@
 import { addRule, removeRule, handleRoleRemove, rule, updateRule, getRoleList, getMenuList, handleAccountEdit, handleMenuAdd, handleMenuUpdate, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns, ProDescriptionsItemProps, ProFormInstance } from '@ant-design/pro-components';
+import type { ActionType, ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import {
-  FooterToolbar,
   ModalForm,
   PageContainer,
-  ProDescriptions,
   ProFormText,
-  ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
+import { useModel } from '@umijs/max';
 import { Button, Drawer, Input, message, Col, Row, Space, Form, Popconfirm, Tree } from 'antd';
-import type { TreeDataNode, TreeProps } from 'antd';
-import React, { useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
-import { findLastKey } from 'lodash';
+import type { TreeProps } from 'antd';
+import React, { useRef, useState, useEffect } from 'react';
 
-/**
- * @en-US Add node
- * @zh-CN 添加节点
- * @param fields
- */
-const handleAdd = async (fields: API.RuleListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({
-      ...fields,
-    });
-    hide();
-    message.success('Added successfully');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Adding failed, please try again!');
-    return false;
-  }
-};
-
-/**
- * @en-US Update node
- * @zh-CN 更新节点
- *
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('Configuring');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-    message.success('Configuration is successful');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Configuration failed, please try again!');
-    return false;
-  }
-};
-
-/**
- *  Delete node
- * @zh-CN 删除节点
- *
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('Deleted successfully and will refresh soon');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Delete failed, please try again');
-    return false;
-  }
-};
 const formItemLayout = {
   labelCol: { span: 6 },
   wrapperCol: { span: 18 },
 }
 const TableList: React.FC = () => {
+  const { initialState } = useModel('@@initialState');
+  const { currentUser } = initialState || {};
+  const [auth, setAuth] = useState([]);
+  useEffect(() => {
+    setAuth(currentUser?.perms || [])
+  }, [])
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>([]);
   const [halfCheckedKeys, setHalfCheckedKeys] = useState<React.Key[]>([]);
-  
-  // const [checkedMenuList, setCheckedMenuList] = useState<React.Key[]>([]);
+
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [treeData, setTreeData] = useState([])
   const [modalTitle, setModalTitle] = useState('新建角色')
@@ -103,8 +36,6 @@ const TableList: React.FC = () => {
 
   const onExpand: TreeProps['onExpand'] = (expandedKeysValue) => {
     console.log('onExpand', expandedKeysValue);
-    // if not set autoExpandParent to false, if children expanded, parent can not collapse.
-    // or, you can remove all expanded children keys.
     setExpandedKeys(expandedKeysValue);
   };
 
@@ -165,37 +96,44 @@ const TableList: React.FC = () => {
       dataIndex: 'option',
       valueType: 'option',
       render: (_, record) => {
-        let renderArr = [
-          <a
-            key="config"
-            onClick={async () => {
-              handleModalOpen(true);
-              setModalTitle('编辑角色')
-              let res = await getMenuList({ roleId: record.roleId })
-              setTimeout(() => {
-                if (modalFormRef.current) {
-                  modalFormRef.current.setFieldsValue(record);
-                  setCheckedKeys(record.menuIds)
-                  setTreeData(res.list)
-                  setCurrentRow(record);
-                }
+        let renderArr = []
+        if (auth.includes('platform:role:update')) {
+          renderArr.push(
+            <a
+              key="config"
+              onClick={async () => {
+                handleModalOpen(true);
+                setModalTitle('编辑角色')
+                let res = await getMenuList({ roleId: record.roleId })
+                setTimeout(() => {
+                  if (modalFormRef.current) {
+                    modalFormRef.current.setFieldsValue(record);
+                    setCheckedKeys(record.menuIds)
+                    setTreeData(res.list)
+                    setCurrentRow(record);
+                  }
+                })
+              }}
+            >
+              编辑
+            </a>
+          )
+        }
+        if(auth.includes('platform:role:delete')) {
+          renderArr.push(
+            <Popconfirm style={{ display: 'none' }} title="确定要删除该角色吗？" onConfirm={async () => {
+              await handleRoleRemove({
+                roleId: record.roleId
               })
-            }}
-          >
-            编辑
-          </a>,
-          <Popconfirm style={{ display: 'none' }} title="确定要删除该角色吗？" onConfirm={async () => {
-            await handleRoleRemove({
-              roleId: record.roleId
-            })
-            if (actionRef.current) {
-              message.success("删除成功")
-              actionRef.current.reload();
-            }
-          }}>
-            <a>删除</a>
-          </Popconfirm>
-        ]
+              if (actionRef.current) {
+                message.success("删除成功")
+                actionRef.current.reload();
+              }
+            }}>
+              <a>删除</a>
+            </Popconfirm>
+          )
+        }
         return renderArr
       }
     },
@@ -224,6 +162,7 @@ const TableList: React.FC = () => {
               setModalTitle('新建角色')
               handleModalOpen(true);
             }}
+            hidden={auth.includes('platform:role:add') ? false : true}
           >
             <PlusOutlined /> 添加角色
           </Button>,
@@ -234,6 +173,9 @@ const TableList: React.FC = () => {
             pageNum: params.current,
           };
           delete payload.current;
+          if(!auth.includes('platform:role:page')) {
+            return []
+         }
           return getRoleList(payload);
         }}
         columns={columns}
@@ -262,7 +204,7 @@ const TableList: React.FC = () => {
           console.log('onFinish', value);
           let payload = {
             ...value,
-            menuIdList: [...checkedKeys,...halfCheckedKeys]
+            menuIdList: [...checkedKeys, ...halfCheckedKeys]
           }
           let result = {}
           if (modalTitle === '编辑角色') {

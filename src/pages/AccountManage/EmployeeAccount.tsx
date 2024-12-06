@@ -1,4 +1,4 @@
-import { addRule, removeRule, rule, updateRule, getEmployeeList, getPlatformRoleList, handleAccountEdit,handleEmployeeRemove, handleEmployeeAdd, handleEmployeeUpdate, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
+import { addRule, removeRule, rule, updateRule, getEmployeeList, getPlatformRoleList, handleAccountEdit, handleEmployeeRemove, handleEmployeeAdd, handleEmployeeUpdate, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps, ProFormInstance } from '@ant-design/pro-components';
 import {
@@ -12,66 +12,25 @@ import {
   ProFormSelect
 } from '@ant-design/pro-components';
 import '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { Button, Drawer, Input, message, Col, Row, Space, Form, Popconfirm } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
 
-/**
- * @en-US Update node
- * @zh-CN 更新节点
- *
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('Configuring');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-    message.success('Configuration is successful');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Configuration failed, please try again!');
-    return false;
-  }
-};
-
-/**
- *  Delete node
- * @zh-CN 删除节点
- *
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('Deleted successfully and will refresh soon');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Delete failed, please try again');
-    return false;
-  }
-};
 const formItemLayout = {
   labelCol: { span: 6 },
   wrapperCol: { span: 18 },
 }
 const TableList: React.FC = () => {
+  const { initialState } = useModel('@@initialState');
+  const { currentUser } = initialState || {};
+  const [auth, setAuth] = useState([]);
+  useEffect(() => {
+    setAuth(currentUser?.perms || [])
+  }, [])
   const modalFormRef = useRef<ProFormInstance>();
-  
+
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
-  
+
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
   const [roles, setRoles] = useState([]);
@@ -84,12 +43,12 @@ const TableList: React.FC = () => {
       res.data.map(item => {
         arr.push({
           label: item.roleName,
-          value:item.roleId
+          value: item.roleId
         })
       })
 
-      console.log('valueEnum123',arr);
-      
+      console.log('valueEnum123', arr);
+
       setRoles(arr)
     })
   }, [])
@@ -159,28 +118,31 @@ const TableList: React.FC = () => {
       dataIndex: 'option',
       valueType: 'option',
       render: (_, record) => {
-        let renderArr = [
-          <a
-            key="config"
-            onClick={() => {
-              handleModalOpen(true);
-              setModalTitle('编辑账户')
-              setTimeout(() => {
-                if (modalFormRef.current) {
-                  let roleIdList = record.roles[0].roleId
-                  modalFormRef.current.setFieldsValue({
-                    ...record,
-                    roleIdList:roleIdList
-                  })
-                  setCurrentRow(record);
-                }
-              })
-            }}
-          >
-            编辑
-          </a>
-        ]
-        if (record.accountType != 1) {
+        let renderArr = []
+        if (auth.includes('platform:user:update')) {
+          renderArr.push(
+            <a
+              key="config"
+              onClick={() => {
+                handleModalOpen(true);
+                setModalTitle('编辑账户')
+                setTimeout(() => {
+                  if (modalFormRef.current) {
+                    let roleIdList = record.roles[0].roleId
+                    modalFormRef.current.setFieldsValue({
+                      ...record,
+                      roleIdList: roleIdList
+                    })
+                    setCurrentRow(record);
+                  }
+                })
+              }}
+            >
+              编辑
+            </a>
+          )
+        }
+        if (record.accountType != 1 && auth.includes('platform:user:delete')) {
           renderArr.push(
             <Popconfirm style={{ display: 'none' }} title="确定要删除该企业吗？" onConfirm={async () => {
               await handleEmployeeRemove({
@@ -195,7 +157,7 @@ const TableList: React.FC = () => {
 
           )
         }
-        if (record.status == 1) {
+        if (record.status == 1 && auth.includes('platform:user:disable')) {
           renderArr.push(
             <Popconfirm title="确定要禁用该账号吗？" onConfirm={async () => {
               await handleAccountDisable({
@@ -209,18 +171,20 @@ const TableList: React.FC = () => {
             </Popconfirm>
           )
         } else {
-          renderArr.push(
-            <Popconfirm title="确定要启用该账号吗？" onConfirm={async () => {
-              await handleAccountEnable({
-                userId: record.userId
-              })
-              if (actionRef.current) {
-                actionRef.current.reload();
-              }
-            }}>
-              <a>启用</a>
-            </Popconfirm>
-          )
+          if (auth.includes('platform:user:enable')) {
+            renderArr.push(
+              <Popconfirm title="确定要启用该账号吗？" onConfirm={async () => {
+                await handleAccountEnable({
+                  userId: record.userId
+                })
+                if (actionRef.current) {
+                  actionRef.current.reload();
+                }
+              }}>
+                <a>启用</a>
+              </Popconfirm>
+            )
+          }
         }
         return renderArr
       }
@@ -247,6 +211,7 @@ const TableList: React.FC = () => {
                 modalFormRef.current.resetFields()
               }
             }}
+            hidden={auth.includes('platform:user:add') ? false : true}
           >
             <PlusOutlined /> 创建账号
           </Button>,
@@ -257,6 +222,9 @@ const TableList: React.FC = () => {
             pageNum: params.current,
           };
           delete payload.current;
+          if(!auth.includes('platform:user:page')) {
+            return []
+         }
           return getEmployeeList(payload);
         }}
         columns={columns}
@@ -292,7 +260,7 @@ const TableList: React.FC = () => {
           if (modalTitle === '编辑账户') {
             result = await handleEmployeeUpdate({
               ...payload,
-              userId:currentRow.userId,
+              userId: currentRow.userId,
               roleId: currentRow?.roleId
             });
           } else {

@@ -1,4 +1,4 @@
-import {  removeRule, rule, getAccountList, handleAccountEdit, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
+import { removeRule, rule, getAccountList, handleAccountEdit, handleAccountRemove, handleAccountEnable, handleAccountDisable } from '@/services/ant-design-pro/api';
 import type { ActionType, ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import {
     FooterToolbar,
@@ -8,41 +8,29 @@ import {
     ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button,  Input, message, Col, Row, Space, Form, Popconfirm } from 'antd';
-import React, { useRef, useState } from 'react';
+import { useModel } from '@umijs/max';
+import { Button, Input, message, Col, Row, Space, Form, Popconfirm } from 'antd';
+import React, { useRef, useState, useEffect } from 'react';
 
-/**
- *  Delete node
- * @zh-CN 删除节点
- *
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
-    const hide = message.loading('正在删除');
-    if (!selectedRows) return true;
-    try {
-        await removeRule({
-            key: selectedRows.map((row) => row.key),
-        });
-        hide();
-        message.success('Deleted successfully and will refresh soon');
-        return true;
-    } catch (error) {
-        hide();
-        message.error('Delete failed, please try again');
-        return false;
-    }
-};
 const formItemLayout = {
     labelCol: { span: 6 },
     wrapperCol: { span: 18 },
 }
 const TableList: React.FC = () => {
+    const { initialState } = useModel('@@initialState');
+    const { currentUser } = initialState || {};
+    const [auth, setAuth] = useState([]);
+    useEffect(() => {
+        setAuth(currentUser?.perms || [])
+    }, [])
+
     const modalFormRef = useRef<ProFormInstance>();
     const [createModalOpen, handleModalOpen] = useState<boolean>(false);
     const actionRef = useRef<ActionType>();
     const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
     const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
+
+    
 
     const columns: ProColumns<API.RuleListItem>[] = [
         {
@@ -124,8 +112,10 @@ const TableList: React.FC = () => {
             dataIndex: 'option',
             valueType: 'option',
             render: (_, record) => {
-                let renderArr = [
-                    <a
+                let renderArr = []
+                if(auth.includes('platform:business:user:update')) {
+                    renderArr.push(
+                        <a
                         key="config"
                         onClick={() => {
                             handleModalOpen(true);
@@ -139,9 +129,9 @@ const TableList: React.FC = () => {
                     >
                         编辑
                     </a>
-
-                ]
-                if (record.accountType != 1) {
+                    )
+                }
+                if (record.accountType != 1 && auth.includes('platform:business:user:delete')) {
                     renderArr.push(
                         <Popconfirm style={{ display: 'none' }} title="确定要删除该企业吗？" onConfirm={async () => {
                             await handleAccountRemove({
@@ -157,31 +147,35 @@ const TableList: React.FC = () => {
                     )
                 }
                 if (record.status == 1) {
-                    renderArr.push(
-                        <Popconfirm title="确定要禁用该账号吗？" onConfirm={async () => {
-                            await handleAccountDisable({
-                                userId: record.userId
-                            })
-                            if (actionRef.current) {
-                                actionRef.current.reload();
-                            }
-                        }}>
-                            <a>禁用</a>
-                        </Popconfirm>
-                    )
+                    if(auth.includes('platform:business:user:disable')) {
+                        renderArr.push(
+                            <Popconfirm title="确定要禁用该账号吗？" onConfirm={async () => {
+                                await handleAccountDisable({
+                                    userId: record.userId
+                                })
+                                if (actionRef.current) {
+                                    actionRef.current.reload();
+                                }
+                            }}>
+                                <a>禁用</a>
+                            </Popconfirm>
+                        )
+                    }
                 } else {
-                    renderArr.push(
-                        <Popconfirm title="确定要启用该账号吗？" onConfirm={async () => {
-                            await handleAccountEnable({
-                                userId: record.userId
-                            })
-                            if (actionRef.current) {
-                                actionRef.current.reload();
-                            }
-                        }}>
-                            <a>启用</a>
-                        </Popconfirm>
-                    )
+                    if(auth.includes('platform:business:user:enable')) {
+                        renderArr.push(
+                            <Popconfirm title="确定要启用该账号吗？" onConfirm={async () => {
+                                await handleAccountEnable({
+                                    userId: record.userId
+                                })
+                                if (actionRef.current) {
+                                    actionRef.current.reload();
+                                }
+                            }}>
+                                <a>启用</a>
+                            </Popconfirm>
+                        )
+                    }
                 }
                 return renderArr
             }
@@ -200,12 +194,15 @@ const TableList: React.FC = () => {
                 toolBarRender={() => []}
                 request={(params) => {
                     let payload = {
-                      ...params,
-                      pageNum: params.current,
+                        ...params,
+                        pageNum: params.current,
                     };
                     delete payload.current;
+                    if(!auth.includes('platform:business:user:page')) {
+                       return []
+                    }
                     return getAccountList(payload);
-                  }}
+                }}
                 columns={columns}
                 rowSelection={false}
             />
@@ -242,7 +239,7 @@ const TableList: React.FC = () => {
                         if (actionRef.current) {
                             actionRef.current.reload();
                         }
-                    } 
+                    }
                 }}
             >
                 <ProFormText

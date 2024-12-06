@@ -13,7 +13,8 @@ import {
 } from '@ant-design/pro-components';
 import '@umijs/max';
 import { Button, Drawer, Input, InputNumber, message, Col, Row, Space, Cascader, Form, Popconfirm, Modal } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { history, useModel } from '@umijs/max';
 import { areaList } from '../../../public/area';
 import type { CascaderProps } from 'antd';
 import moment from 'moment';
@@ -93,10 +94,17 @@ const handleRemove = async (selectedRows: API.RuleListItem) => {
 };
 
 const TableList: React.FC = () => {
+  const { initialState } = useModel('@@initialState');
+  const { currentUser } = initialState || {};
+
+
+
   const modalFormRef = useRef<ProFormInstance>();
   const rechargeRef = useRef<ActionType>();
   const billingRef = useRef<ActionType>();
   const bzRef = useRef();
+
+  const [auth, setAuth] = useState([]);
 
   const [createModalOpen, handleModalOpen] = useState<boolean>(false);
   // 充值记录弹窗
@@ -126,6 +134,11 @@ const TableList: React.FC = () => {
   const [downloadFileParams, saveDownloadFileParams] = useState({});
 
   const [inputValue, setInputValue] = useState(null);
+
+  useEffect(() => {
+    console.log('currentUser123', currentUser);
+    setAuth(currentUser?.perms || [])
+  }, [])
 
   // 处理 InputNumber 值变化的函数
   const handleInputChange = (value) => {
@@ -243,36 +256,6 @@ const TableList: React.FC = () => {
       render: (_, record) => {
         let renderArr = [
           <a
-            key="config"
-            onClick={() => {
-              console.log('modalFormRef', modalFormRef);
-              handleModalOpen(true);
-              setTimeout(() => {
-                if (modalFormRef.current) {
-
-                  let data = {
-                    ...record,
-                    allArea: [record.province, record.city, record.area]
-                  }
-                  modalFormRef.current.setFieldsValue(data);
-
-                  setCurrentRow(record);
-                  editBusinessTitle('编辑企业')
-                }
-              })
-            }}
-          >
-            编辑
-          </a>,
-          <Popconfirm title="确定要删除该企业吗？" onConfirm={async () => {
-            await handleRemove(record)
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}>
-            <a>删除</a>
-          </Popconfirm>,
-          <a
             onClick={() => {
               setCurrentRow(record);
               setTimeout(() => {
@@ -286,72 +269,126 @@ const TableList: React.FC = () => {
           >
             备注
           </a>,
-          <a
-            onClick={() => {
-              setRechargeModalOpen(true)
-              setCurrentRow(record);
-              if (rechargeRef.current) {
-                rechargeRef.current.reload();
-              }
-            }}
-            key="cz"
-          >
-            充值
-          </a>,
-          <a
-            onClick={() => {
-              setSettingsModalOpen(true)
-              setCurrentRow(record);
-              if (billingRef.current) {
-                billingRef.current.reload()
-              }
-            }}
-            key="settingsModalOpenAlert"
-          >
-            计费设置
-          </a>,
         ]
-        if (record.status === 1) {
-          renderArr.unshift(
+        if (auth.includes('platform:business:delete')) {
+          renderArr.push(
             <a
+              key="config"
               onClick={() => {
-                handleExamineModalOpen(true)
-                setCurrentRow(record);
+                console.log('modalFormRef', modalFormRef);
+                handleModalOpen(true);
+                setTimeout(() => {
+                  if (modalFormRef.current) {
+
+                    let data = {
+                      ...record,
+                      allArea: [record.province, record.city, record.area]
+                    }
+                    modalFormRef.current.setFieldsValue(data);
+
+                    setCurrentRow(record);
+                    editBusinessTitle('编辑企业')
+                  }
+                })
               }}
-              key="sh"
             >
-              审核
+              编辑
             </a>
           )
         }
-        if (record.businessStatus == 1) {
+        if (auth.includes('platform:business:delete')) {
           renderArr.push(
-            <Popconfirm style={{ display: 'none' }} title="确定要禁用该企业吗？" onConfirm={async () => {
-              let result = await handleEnableService({
-                businessId: record.businessId
-              })
+            <Popconfirm title="确定要删除该企业吗？" onConfirm={async () => {
+              await handleRemove(record)
               if (actionRef.current) {
                 actionRef.current.reload();
               }
             }}>
-              <a>暂停服务</a>
+              <a>删除</a>
             </Popconfirm>
           )
-        } else {
-          renderArr.push(
-            <Popconfirm style={{ display: 'none' }} title="确定要开启服务吗？" onConfirm={async () => {
-              let result = await handleActivateService({
-                businessId: record.businessId
-              })
-              console.log('result1111', result);
-              if (actionRef.current) {
-                actionRef.current.reload();
-              }
-            }}>
-              <a>开启服务</a>
-            </Popconfirm>
-          )
+        }
 
+        if (auth.includes('platform:business:cost')) {
+          renderArr.push(
+            <a
+              onClick={() => {
+                setSettingsModalOpen(true)
+                setCurrentRow(record);
+                if (billingRef.current) {
+                  billingRef.current.reload()
+                }
+              }}
+              key="settingsModalOpenAlert"
+            >
+              计费设置
+            </a>
+          )
+        }
+
+        if (auth.includes('platform:business:recharge')) {
+          renderArr.push(
+            <a
+              onClick={() => {
+                setRechargeModalOpen(true)
+                setCurrentRow(record);
+                if (rechargeRef.current) {
+                  rechargeRef.current.reset();
+                  rechargeRef.current.reload();
+                }
+              }}
+              key="cz"
+            >
+              充值
+            </a>
+          )
+        }
+        if (record.status === 1) {
+          if (auth.includes('platform:business:check')) {
+            renderArr.unshift(
+              <a
+                onClick={() => {
+                  handleExamineModalOpen(true)
+                  setCurrentRow(record);
+                }}
+                key="sh"
+              >
+                审核
+              </a>
+            )
+          }
+        }
+        if (record.businessStatus == 1) {
+          if (auth.includes('platform:business:disable')) {
+            renderArr.push(
+              <Popconfirm style={{ display: 'none' }} title="确定要禁用该企业吗？" onConfirm={async () => {
+                let result = await handleEnableService({
+                  businessId: record.businessId
+                })
+                if (actionRef.current) {
+                  actionRef.current.reload();
+                }
+              }}>
+                <a>暂停服务</a>
+              </Popconfirm>
+            )
+          }
+        } else {
+          if (auth.includes('platform:business:enable')) {
+            renderArr.push(
+              <Popconfirm style={{ display: 'none' }} title="确定要开启服务吗？" onConfirm={async () => {
+                let result = await handleActivateService({
+                  businessId: record.businessId
+                })
+                console.log('result1111', result);
+                if (actionRef.current) {
+                  actionRef.current.reload();
+                }
+              }}>
+                <a>开启服务</a>
+              </Popconfirm>
+            )
+          }
         }
         return renderArr
       }
@@ -507,6 +544,7 @@ const TableList: React.FC = () => {
               }
               handleModalOpen(true);
             }}
+            hidden={auth.includes('platform:business:add') ? false : true}
           >
             <PlusOutlined /> 开通企业
           </Button>,
@@ -516,6 +554,7 @@ const TableList: React.FC = () => {
             onClick={() => {
               handleDownLoadFile();
             }}
+            hidden={auth.includes('platform:business:export') ? false : true}
           >
             <VerticalAlignBottomOutlined /> 导出
           </Button>,
@@ -530,6 +569,9 @@ const TableList: React.FC = () => {
           delete downloadFileParams.current;
           delete downloadFileParams.pageSize;
           saveDownloadFileParams(downloadFileParams);
+          if (!auth.includes('platform:business:page')) {
+            return []
+          }
           return getList(payload);
         }}
         columns={columns}
@@ -718,7 +760,7 @@ const TableList: React.FC = () => {
           />
           {/* 外部按钮，点击时调用重置函数 */}
           <Button
-            style={{ marginLeft: 30,marginTop:2 }}
+            style={{ marginLeft: 30, marginTop: 2 }}
             type="primary"
             key="primary"
             onClick={async () => {
@@ -728,7 +770,7 @@ const TableList: React.FC = () => {
               }
               delete payload.method
               let result = await handleRechargeMoney(payload)
-              if(result.code === '200') {
+              if (result.code === '200') {
                 message.success('充值成功')
               }
               if (rechargeRef.current) {
@@ -747,6 +789,10 @@ const TableList: React.FC = () => {
           rowKey="key"
           options={false}
           search={false}
+          pagination={{
+            pageSize: 10, // 设置每页显示10条
+            // 可以设置其他分页属性，如默认当前页等
+          }}
           toolBarRender={() => [
             <Button
               type="primary"
@@ -801,7 +847,7 @@ const TableList: React.FC = () => {
           />
           {/* 外部按钮，点击时调用重置函数 */}
           <Button
-            style={{ marginLeft: 30,marginTop:2 }}
+            style={{ marginLeft: 30, marginTop: 2 }}
             type="primary"
             key="primary"
             onClick={async () => {
@@ -812,7 +858,7 @@ const TableList: React.FC = () => {
               delete payload.method
               setSmsBilling(null)
               let result = await handleUpdateCost(payload)
-              if(result.code === '200') {
+              if (result.code === '200') {
                 message.success('修改成功')
               }
               if (billingRef.current) {
@@ -823,11 +869,15 @@ const TableList: React.FC = () => {
           >
             确定
           </Button>
-          
+
         </div>
         <ProTable<API.RuleListItem, API.PageParams>
           headerTitle={'修改记录'}
           actionRef={billingRef}
+          pagination={{
+            pageSize: 10, // 设置每页显示10条
+            // 可以设置其他分页属性，如默认当前页等
+          }}
           rowKey="key"
           options={false}
           search={false}
