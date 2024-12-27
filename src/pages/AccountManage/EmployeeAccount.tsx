@@ -317,7 +317,7 @@ const TableList: React.FC = () => {
           rules={[
             {
               required: true,
-              message: '规则名称为必填项',
+              message: '请勾选角色',
             },
           ]}
           name="roleIdList"
